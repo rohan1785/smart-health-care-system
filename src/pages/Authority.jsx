@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { collection, getDocs } from "firebase/firestore"
+import { db } from "../firebase"
 import { Line } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
@@ -28,12 +30,12 @@ function Authority() {
     setAlertMessage(alert)
   }, [])
 
-  const data = {
+  const [chartData, setChartData] = useState({
     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     datasets: [
       {
         label: 'Dengue Cases',
-        data: [5, 9, 7, 12, 10, 15, 18],
+        data: [0, 0, 0, 0, 0, 0, 0],
         borderColor: '#ef4444',
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
         fill: true,
@@ -41,14 +43,68 @@ function Authority() {
       },
       {
         label: 'Flu Cases',
-        data: [10, 12, 15, 13, 17, 20, 22],
+        data: [0, 0, 0, 0, 0, 0, 0],
         borderColor: '#0ea5e9',
         backgroundColor: 'rgba(14, 165, 233, 0.1)',
         fill: true,
         tension: 0.4,
       },
     ],
-  }
+  })
+
+  useEffect(() => {
+    const fetchDiseaseData = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "disease_cases"));
+        const data = snapshot.docs.map((doc) => doc.data());
+        console.log("Fetched Disease Data:", data);
+
+        // Process data for the chart. Let's assume docs have { day: 'Mon', dengue: 5, flu: 10 }
+        // For simplicity, we can update the state directly if matching labels
+        const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        let dengueData = [0, 0, 0, 0, 0, 0, 0];
+        let fluData = [0, 0, 0, 0, 0, 0, 0];
+        
+        // If data from firestore exists, map it to the corresponding day
+        data.forEach(item => {
+           const index = labels.indexOf(item.day);
+           if (index !== -1) {
+              dengueData[index] = item.dengue || 0;
+              fluData[index] = item.flu || 0;
+           }
+        });
+
+        // Set the fetched data or keep the demo ones if db is empty for now
+        if (data.length > 0) {
+            setChartData({
+              labels: labels,
+              datasets: [
+                {
+                  label: 'Dengue Cases',
+                  data: dengueData,
+                  borderColor: '#ef4444',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  fill: true,
+                  tension: 0.4,
+                },
+                {
+                  label: 'Flu Cases',
+                  data: fluData,
+                  borderColor: '#0ea5e9',
+                  backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                  fill: true,
+                  tension: 0.4,
+                },
+              ],
+            });
+        }
+      } catch (error) {
+        console.error("Error fetching chart data:", error);
+      }
+    };
+    
+    fetchDiseaseData();
+  }, [])
 
   const chartOptions = {
     responsive: true,
@@ -116,7 +172,9 @@ function Authority() {
 
 <div className="chart-container">
   <h3 className="chart-title">Disease Trend Analytics</h3>
-  <Line data={data} options={chartOptions} />
+  <div style={{ position: 'relative', height: '350px', width: '100%' }}>
+    <Line data={chartData} options={chartOptions} />
+  </div>
 </div>
 
 <div className="chart-container">

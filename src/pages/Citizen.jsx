@@ -1,19 +1,47 @@
 import { useState, useEffect } from 'react'
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { db } from '../firebase'
 
 function Citizen() {
   const [healthAlert, setHealthAlert] = useState('')
+  const [alerts, setAlerts] = useState([])
+  const [hospitals, setHospitals] = useState([])
 
   useEffect(() => {
     const alert = localStorage.getItem('healthAlert') || ''
     setHealthAlert(alert)
-  }, [])
 
-  const hospitals = [
-    { name: 'City General Hospital', distance: '2.5 km', available: 45, phone: '+1 555-0101' },
-    { name: 'Municipal Medical Center', distance: '3.8 km', available: 30, phone: '+1 555-0102' },
-    { name: 'Community Health Center', distance: '5.2 km', available: 20, phone: '+1 555-0103' },
-    { name: 'St. Marys Hospital', distance: '6.1 km', available: 55, phone: '+1 555-0104' },
-  ]
+    const q = query(collection(db, 'alerts'), orderBy('date', 'desc'))
+    const unsubscribeAlerts = onSnapshot(q, (snapshot) => {
+      const alertsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      setAlerts(alertsData)
+    })
+
+    const unsubscribeHospitals = onSnapshot(collection(db, 'hospitals'), (snapshot) => {
+      let hospitalsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      
+      // Provide fallback data if firestore collection is empty
+      if (hospitalsData.length === 0) {
+        hospitalsData = [
+          { name: 'City Central Hospital', distance: '2.4 km', availableBeds: 45, phone: '+1 234 567 8900' },
+          { name: 'Metro Health Care', distance: '3.8 km', availableBeds: 12, phone: '+1 234 567 8901' },
+          { name: 'Sunrise Medical Center', distance: '5.1 km', availableBeds: 110, phone: '+1 234 567 8902' }
+        ];
+      }
+      setHospitals(hospitalsData)
+    })
+
+    return () => {
+      unsubscribeAlerts()
+      unsubscribeHospitals()
+    }
+  }, [])
 
   return (
     <div>
@@ -24,7 +52,7 @@ function Citizen() {
       </div>
 
       {healthAlert && (
-        <div className="alert-banner danger">
+        <div className="alert-banner danger" style={{ marginBottom: '15px' }}>
           <div className="alert-icon">🚨</div>
           <div className="alert-content">
             <h4>Health Alert</h4>
@@ -32,6 +60,21 @@ function Citizen() {
           </div>
         </div>
       )}
+
+      {alerts.map(alert => (
+        <div key={alert.id} className="alert-banner danger" style={{ marginBottom: '15px' }}>
+          <div className="alert-icon">🚨</div>
+          <div className="alert-content">
+            <h4>Health Alert</h4>
+            <p>{alert.message}</p>
+            {alert.date && (
+              <small style={{ marginTop: '5px', display: 'block', opacity: 0.8 }}>
+                {alert.date?.toDate ? alert.date.toDate().toLocaleString() : new Date(alert.date).toLocaleString()}
+              </small>
+            )}
+          </div>
+        </div>
+      ))}
 
       <div className="dashboard-grid">
 
@@ -77,7 +120,7 @@ function Citizen() {
 
               <div className="hospital-info">
                 <span>Available Beds</span>
-                <span style={{ color: '#10b981' }}>{hospital.available}</span>
+                <span style={{ color: '#10b981' }}>{hospital.availableBeds || hospital.available || 0}</span>
               </div>
 
               <div className="hospital-info">

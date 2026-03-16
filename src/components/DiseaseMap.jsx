@@ -1,4 +1,5 @@
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 
 function DiseaseMap() {
   const zones = [

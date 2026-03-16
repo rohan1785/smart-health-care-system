@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { db } from '../firebase'
+import { collection, addDoc, getDocs } from 'firebase/firestore'
 
 function Hospital() {
   const [hospitals, setHospitals] = useState([])
@@ -6,19 +8,59 @@ function Hospital() {
   const [beds, setBeds] = useState('')
   const [available, setAvailable] = useState('')
 
-  const addHospital = () => {
+  useEffect(() => {
+    const fetchHospitals = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "hospitals"));
+        const fetchedHospitals = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          fetchedHospitals.push({
+            name: data.name,
+            beds: data.totalBeds,
+            available: data.availableBeds,
+            id: doc.id
+          });
+        });
+        // We initialize with the firebase data plus hardcoded ones, or we can just set it to fetched
+        // Since we want the data directly from Firebase, we will set it here
+        setHospitals(fetchedHospitals);
+      } catch (error) {
+        console.error("Error fetching hospitals: ", error);
+      }
+    };
+
+    fetchHospitals();
+  }, []);
+
+  const addHospital = async () => {
     if (!name || !beds || !available) return
 
-    const newHospital = {
-      name,
-      beds,
-      available
-    }
+    try {
+      // Connect to Firebase
+      await addDoc(collection(db, "hospitals"), {
+        name: name,
+        totalBeds: parseInt(beds),
+        availableBeds: parseInt(available),
+        location: "Not Specified"
+      });
 
-    setHospitals([...hospitals, newHospital])
-    setName('')
-    setBeds('')
-    setAvailable('')
+      const newHospital = {
+        name,
+        beds,
+        available
+      }
+
+      setHospitals([...hospitals, newHospital])
+      setName('')
+      setBeds('')
+      setAvailable('')
+      
+      alert("Hospital added successfully to Firebase!");
+    } catch (error) {
+      console.error("Error adding hospital: ", error);
+      alert("Failed to add hospital to Firebase");
+    }
   }
 
   return (

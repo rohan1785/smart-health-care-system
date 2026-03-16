@@ -23,4 +23,3 @@ function Navbar({ logout }) {
 }
 
 export default Navbar
-
