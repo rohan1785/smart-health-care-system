@@ -84,11 +84,11 @@ export default function Slideshow() {
           >
             
             
-            <div className="relative z-10 p-10 md:p-16 w-full flex flex-col md:flex-row items-center md:items-center justify-between gap-10">
+            <div className="relative z-10 p-10 md:p-16 w-full flex flex-col md:flex-row items-center md:items-center justify-between gap-10" style={{padding: '20px'}}>
               
               {/* Text Info Side */}
-              <div className="flex-1 text-center md:text-left md:pl-8">
-                <span className="inline-block px-3 py-1 bg-white/10 text-white/90 border border-white/20 text-xs font-bold tracking-[0.15em] uppercase mb-4 rounded-sm">
+              <div className="flex-1 text-center md:text-left" style={{padding: '20px'}}>
+                <span className="inline-block px-3 py-1 bg-white/10 text-white/90 border border-white/20 text-xs font-bold tracking-[0.15em] uppercase mb-15px rounded-sm">
                   Official Initiative
                 </span>
                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
@@ -100,7 +100,7 @@ export default function Slideshow() {
                 
                 <div 
                   onClick={() => window.location.href = slide.link} 
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm uppercase tracking-wider cursor-pointer transition-colors border-2 border-transparent hover:border-blue-400 shadow-lg rounded-sm"
+                  className="inline-flex items-center gap-2 p-5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm uppercase tracking-wider cursor-pointer transition-colors border-2 border-transparent hover:border-blue-400 shadow-lg rounded-sm"
                 >
                   {slide.btn}
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>

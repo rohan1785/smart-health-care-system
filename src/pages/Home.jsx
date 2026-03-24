@@ -246,20 +246,35 @@ function Home() {
               </div>
             ) : (
               <div className="hospital-grid">
-                {hospitals.map((hospital, index) => (
-                  <div key={index} className="hospital-card">
-                    <h3>{hospital.name}</h3>
+                {hospitals.map((hospital) => (
+                  <div key={hospital.id} className="hospital-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <h3>{hospital.name}</h3>
+                      {hospital.fraudStatus === 'Suspicious' ? (
+                        <span className="fraud-badge suspicious" style={{ fontSize: '0.8rem' }}>🔴 Suspicious</span>
+                      ) : (
+                        <span className="fraud-badge normal" style={{ fontSize: '0.8rem' }}>🟢 Verified</span>
+                      )}
+                    </div>
                     <div className="hospital-info">
                       <span>Distance</span>
                       <span style={{ fontWeight: 'bold', color: '#2563EB' }}>{hospital.distance || 'N/A'}</span>
                     </div>
                     <div className="hospital-info">
-                      <span>Available Beds</span>
-                      <span style={{ color: '#10b981', fontWeight: 'bold' }}>{hospital.availableBeds || hospital.available || 0}</span>
+                      <span>Current Beds</span>
+                      <span style={{ color: '#10b981', fontWeight: 'bold' }}>{hospital.currentBeds || hospital.availableBeds || hospital.available || 0}</span>
+                    </div>
+                    <div className="hospital-info">
+                      <span>Trust Score</span>
+                      <span style={{ color: hospital.trustScore < 70 ? '#ef4444' : '#10b981', fontWeight: 'bold' }}>{hospital.trustScore || 100}%</span>
+                    </div>
+                    <div className="hospital-info">
+                      <span>Ventilators</span>
+                      <span>{hospital.currentEquipment?.ventilators || 0}</span>
                     </div>
                     <div className="hospital-info">
                       <span>Contact</span>
-                      <span>{hospital.phone}</span>
+                      <span style={{ fontSize: '0.9rem' }}>{hospital.phone}</span>
                     </div>
                     <button
                       className="btn btn-primary"

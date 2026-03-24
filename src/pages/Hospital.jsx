@@ -5,8 +5,12 @@ import { collection, addDoc, getDocs } from 'firebase/firestore'
 function Hospital() {
   const [hospitals, setHospitals] = useState([])
   const [name, setName] = useState('')
-  const [beds, setBeds] = useState('')
-  const [available, setAvailable] = useState('')
+  const [totalBeds, setTotalBeds] = useState('')
+  const [currentBeds, setCurrentBeds] = useState('')
+  const [ventilators, setVentilators] = useState('')
+  const [icuBeds, setIcuBeds] = useState('')
+  const [ambulances, setAmbulances] = useState('')
+  const [trustScore, setTrustScore] = useState('100')
 
   useEffect(() => {
     const fetchHospitals = async () => {
@@ -16,10 +20,15 @@ function Hospital() {
         querySnapshot.forEach((doc) => {
           const data = doc.data();
           fetchedHospitals.push({
-            name: data.name,
-            beds: data.totalBeds,
-            available: data.availableBeds,
-            id: doc.id
+            id: doc.id,
+            name: data.name || 'Unnamed',
+            totalBeds: data.totalBeds || 0,
+            currentBeds: data.currentBeds || data.availableBeds || 0,
+            currentEquipment: data.currentEquipment || {ventilators: 0, icuBeds: 0, ambulances: 0},
+            fraudStatus: data.fraudStatus || 'Normal',
+            fraudReason: data.fraudReason || '',
+            trustScore: data.trustScore || 100,
+            lastUpdated: data.lastUpdated || null
           });
         });
         // We initialize with the firebase data plus hardcoded ones, or we can just set it to fetched
@@ -34,27 +43,47 @@ function Hospital() {
   }, []);
 
   const addHospital = async () => {
-    if (!name || !beds || !available) return
+    if (!name || !totalBeds || !currentBeds || !ventilators || !icuBeds || !ambulances) return
 
     try {
       // Connect to Firebase
       await addDoc(collection(db, "hospitals"), {
         name: name,
-        totalBeds: parseInt(beds),
-        availableBeds: parseInt(available),
+        totalBeds: parseInt(totalBeds),
+        currentBeds: parseInt(currentBeds),
+        currentEquipment: {
+          ventilators: parseInt(ventilators),
+          icuBeds: parseInt(icuBeds),
+          ambulances: parseInt(ambulances)
+        },
+        fraudStatus: "Normal",
+        fraudReason: "",
+        trustScore: parseInt(trustScore),
+        lastUpdated: new Date(),
         location: "Not Specified"
       });
 
       const newHospital = {
         name,
-        beds,
-        available
+        totalBeds,
+        currentBeds,
+        currentEquipment: {
+          ventilators,
+          icuBeds, 
+          ambulances
+        },
+        trustScore,
+        fraudStatus: "Normal"
       }
 
       setHospitals([...hospitals, newHospital])
       setName('')
-      setBeds('')
-      setAvailable('')
+      setTotalBeds('')
+      setCurrentBeds('')
+      setVentilators('')
+      setIcuBeds('')
+      setAmbulances('')
+      setTrustScore('100')
       
       alert("Hospital added successfully to Firebase!");
     } catch (error) {
@@ -68,46 +97,90 @@ function Hospital() {
 
       <div className="page-header">
         <h1 className="page-title">Hospital Resource Dashboard</h1>
-        <p className="page-subtitle">Manage hospital resources and bed availability</p>
+        <p className="page-subtitle">Manage hospital resources and ML-powered fraud detection for beds & equipment</p>
       </div>
 
       <div className="chart-container">
         <h3 className="chart-title">Add Hospital</h3>
 
-        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginTop: '20px' }}>
+        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginTop: '20px', flexDirection: 'column' }}>
+          
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            <div className="form-group" style={{ flex: '1', minWidth: '200px', marginBottom: 0 }}>
+              <input
+                type="text"
+                placeholder="Hospital Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="form-input"
+              />
+            </div>
 
-          <div className="form-group" style={{ flex: '1', minWidth: '200px', marginBottom: 0 }}>
-            <input
-              type="text"
-              placeholder="Hospital Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="form-input"
-            />
+            <div className="form-group" style={{ flex: '1', minWidth: '150px', marginBottom: 0 }}>
+              <input
+                type="number"
+                placeholder="Total Beds"
+                value={totalBeds}
+                onChange={(e) => setTotalBeds(e.target.value)}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group" style={{ flex: '1', minWidth: '150px', marginBottom: 0 }}>
+              <input
+                type="number"
+                placeholder="Current Beds (Available)"
+                value={currentBeds}
+                onChange={(e) => setCurrentBeds(e.target.value)}
+                className="form-input"
+              />
+            </div>
           </div>
 
-          <div className="form-group" style={{ flex: '1', minWidth: '150px', marginBottom: 0 }}>
-            <input
-              type="number"
-              placeholder="Total Beds"
-              value={beds}
-              onChange={(e) => setBeds(e.target.value)}
-              className="form-input"
-            />
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            <div className="form-group" style={{ flex: '1', minWidth: '120px', marginBottom: 0 }}>
+              <input
+                type="number"
+                placeholder="Ventilators"
+                value={ventilators}
+                onChange={(e) => setVentilators(e.target.value)}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group" style={{ flex: '1', minWidth: '120px', marginBottom: 0 }}>
+              <input
+                type="number"
+                placeholder="ICU Beds"
+                value={icuBeds}
+                onChange={(e) => setIcuBeds(e.target.value)}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group" style={{ flex: '1', minWidth: '120px', marginBottom: 0 }}>
+              <input
+                type="number"
+                placeholder="Ambulances"
+                value={ambulances}
+                onChange={(e) => setAmbulances(e.target.value)}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group" style={{ flex: '1', minWidth: '120px', marginBottom: 0 }}>
+              <input
+                type="number"
+                placeholder="Trust Score (0-100)"
+                value={trustScore}
+                onChange={(e) => setTrustScore(e.target.value)}
+                className="form-input"
+              />
+            </div>
           </div>
 
-          <div className="form-group" style={{ flex: '1', minWidth: '150px', marginBottom: 0 }}>
-            <input
-              type="number"
-              placeholder="Available Beds"
-              value={available}
-              onChange={(e) => setAvailable(e.target.value)}
-              className="form-input"
-            />
-          </div>
-
-          <button onClick={addHospital} className="btn btn-primary">
-            Add Hospital
+          <button onClick={addHospital} className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
+            Add Hospital with Fraud Detection
           </button>
 
         </div>
@@ -116,90 +189,61 @@ function Hospital() {
 
       <div className="hospital-grid">
 
-        {hospitals.map((h, i) => (
-          <div key={i} className="hospital-card">
-
-            <h3>🏥 {h.name}</h3>
-
+        {hospitals.map((h) => (
+          <div key={h.id} className="hospital-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3>🏥 {h.name}</h3>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span className={`fraud-badge ${h.fraudStatus.toLowerCase()}`}>
+                  {h.fraudStatus === 'Normal' ? '🟢 Normal' : '🔴 Suspicious'}
+                </span>
+                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Trust: {h.trustScore}%</span>
+              </div>
+            </div>
+            {h.fraudReason && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '6px 10px', marginBottom: '12px', fontSize: '0.8rem', color: '#dc2626' }}>
+                ⚠️ {h.fraudReason}
+              </div>
+            )}
             <div className="hospital-info">
               <span>Total Beds</span>
-              <span>{h.beds}</span>
+              <span>{h.totalBeds}</span>
             </div>
-
             <div className="hospital-info">
-              <span>Available Beds</span>
-              <span style={{ color: '#10b981' }}>{h.available}</span>
+              <span>Current Beds</span>
+              <span style={{ color: h.currentBeds > h.totalBeds * 0.8 ? '#10b981' : '#f59e0b' }}>{h.currentBeds}</span>
             </div>
-
+            <div className="hospital-info">
+              <span>Ventilators</span>
+              <span>{h.currentEquipment.ventilators}</span>
+            </div>
+            <div className="hospital-info">
+              <span>ICU Beds</span>
+              <span>{h.currentEquipment.icuBeds}</span>
+            </div>
+            <div className="hospital-info">
+              <span>Ambulances</span>
+              <span>{h.currentEquipment.ambulances}</span>
+            </div>
             <div className="hospital-info">
               <span>Occupancy</span>
-              <span>
-                {Math.round(((parseInt(h.beds) - parseInt(h.available)) / parseInt(h.beds)) * 100)}%
+              <span style={{ fontWeight: 'bold' }}>
+                {h.totalBeds > 0 ? Math.round((h.currentBeds / h.totalBeds) * 100) + '%' : 'N/A'}
               </span>
             </div>
-
+            {h.lastUpdated && (
+              <div className="hospital-info">
+                <span>Last Updated</span>
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  {h.lastUpdated.toDate ? h.lastUpdated.toDate().toLocaleDateString() : new Date(h.lastUpdated).toLocaleDateString()}
+                </span>
+              </div>
+            )}
           </div>
         ))}
 
 
-        <div className="hospital-card">
-          <h3>🏥 City General Hospital</h3>
 
-          <div className="hospital-info">
-            <span>Total Beds</span>
-            <span>150</span>
-          </div>
-
-          <div className="hospital-info">
-            <span>Available Beds</span>
-            <span style={{ color: '#10b981' }}>45</span>
-          </div>
-
-          <div className="hospital-info">
-            <span>Occupancy</span>
-            <span>70%</span>
-          </div>
-        </div>
-
-
-        <div className="hospital-card">
-          <h3>🏥 Municipal Medical Center</h3>
-
-          <div className="hospital-info">
-            <span>Total Beds</span>
-            <span>100</span>
-          </div>
-
-          <div className="hospital-info">
-            <span>Available Beds</span>
-            <span style={{ color: '#10b981' }}>30</span>
-          </div>
-
-          <div className="hospital-info">
-            <span>Occupancy</span>
-            <span>70%</span>
-          </div>
-        </div>
-
-
-        <div className="hospital-card">
-          <h3>🏥 Community Health Center</h3>
-
-          <div className="hospital-info">
-            <span>Total Beds</span>
-            <span>50</span>
-          </div>
-
-          <div className="hospital-info">
-            <span>Available Beds</span>
-            <span style={{ color: '#10b981' }}>20</span>
-          </div>
-
-          <div className="hospital-info">
-            <span>Occupancy</span>
-            <span>60%</span>
-          </div>
-        </div>
 
       </div>
 

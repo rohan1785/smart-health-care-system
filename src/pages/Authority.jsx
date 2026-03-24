@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs } from "firebase/firestore"
+import { collection, getDocs, query, where, orderBy, onSnapshot, updateDoc, addDoc, serverTimestamp, limit, doc } from "firebase/firestore"
 import { db } from "../firebase"
-import { Line } from 'react-chartjs-2'
+import { Line, Bar } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
   LineElement,
@@ -9,9 +9,11 @@ import {
   LinearScale,
   PointElement,
   Legend,
-  Tooltip
+  Tooltip,
+  BarElement
 } from 'chart.js'
 import DiseaseMap from '../components/DiseaseMap'
+ChartJS.register(BarElement)
 
 ChartJS.register(
   LineElement,
@@ -24,10 +26,58 @@ ChartJS.register(
 
 function Authority() {
   const [alertMessage, setAlertMessage] = useState('')
+  const [fraudAlerts, setFraudAlerts] = useState([])
+  const [suspiciousHospitals, setSuspiciousHospitals] = useState([])
+  const [trustChartData, setTrustChartData] = useState({
+    labels: ['Hospital 1', 'Hospital 2', 'Hospital 3', 'Hospital 4', 'Hospital 5'],
+    datasets: [{
+      label: 'Trust Score',
+      data: [95, 85, 60, 92, 78],
+      backgroundColor: 'rgba(16, 185, 129, 0.6)',
+    }]
+  })
 
   useEffect(() => {
     const alert = localStorage.getItem('healthAlert') || ''
     setAlertMessage(alert)
+  }, [])
+
+  // Fraud Alerts Realtime (filter fraud-related)
+  useEffect(() => {
+    const q = query(
+      collection(db, 'alerts'),
+      orderBy('timestamp', 'desc'),
+      limit(10)
+    )
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const alerts = snapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp?.toDate() || new Date()
+        }))
+        .filter(a => a.reason && (a.reason.toLowerCase().includes('fraud') || a.reason.toLowerCase().includes('suspicious')))
+      setFraudAlerts(alerts)
+    })
+    return unsubscribe
+  }, [])
+
+  // Suspicious Hospitals
+  useEffect(() => {
+    const q = query(
+      collection(db, 'hospitals'), 
+      where('fraudStatus', '==', 'Suspicious'),
+      orderBy('trustScore')
+    )
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const hospitals = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        lastUpdated: doc.data().lastUpdated?.toDate()
+      }))
+      setSuspiciousHospitals(hospitals)
+    })
+    return unsubscribe
   }, [])
 
   const [chartData, setChartData] = useState({
@@ -118,6 +168,29 @@ function Authority() {
         beginAtZero: true,
       },
     },
+  }
+
+  // Fraud alert actions
+  const verifyAlert = async (alertId) => {
+    await updateDoc(doc(db, 'alerts', alertId), { status: 'Verified' })
+    alert('Alert marked as Verified')
+  }
+
+  const rejectAlert = async (alertId) => {
+    await updateDoc(doc(db, 'alerts', alertId), { status: 'Rejected' })
+    alert('Alert marked as Rejected')
+  }
+
+  const sendFraudAlert = async () => {
+    await addDoc(collection(db, 'alerts'), {
+      hospitalId: 'system',
+      hospitalName: 'Fraud Detection System', 
+      reason: 'New ML model detects potential data fraud patterns',
+      status: 'Pending',
+      severity: 'Medium',
+      timestamp: serverTimestamp()
+    })
+    alert('Fraud system alert sent!')
   }
 
   const sendAlert = () => {
