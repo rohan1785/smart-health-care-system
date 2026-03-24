@@ -50,7 +50,7 @@ const Footer = () => {
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-gray-800 pt-10 mt-6 bg-[#0b1120]">
+      <div className="border-t border-gray-800 pt-15 mt-10 bg-[#0b1120]">
         <div className="max-w-[1400px] mx-auto px-8 md:px-16 flex flex-col md:flex-row justify-between items-center gap-6 text-sm font-medium text-gray-500">
           <div className="tracking-wide">
             © 2026 Arogya360. All rights reserved.

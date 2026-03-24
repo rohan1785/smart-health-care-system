@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+rmeimport { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const slides = [
   {
@@ -53,6 +54,7 @@ const slides = [
 
 export default function Slideshow() {
   const [index, setIndex] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -64,10 +66,19 @@ export default function Slideshow() {
   const next = () => setIndex((prev) => (prev + 1) % slides.length);
   const prev = () => setIndex((prev) => (prev - 1 + slides.length) % slides.length);
 
+  const handleRedirect = (link) => {
+    if (link.startsWith('/')) {
+      navigate(link);
+      window.scrollTo(0, 0);
+    } else {
+      window.open(link, '_blank');
+    }
+  };
+
   return (
-    <div className="w-full max-w-[1400px] mx-auto mt-4 mb-16 px-10 font-sans">
+    <div className="w-full mt-4 mb-16 px-10 font-sans">
       <div 
-        className="relative overflow-hidden bg-white border border-gray-300 shadow-md" 
+        className="max-w-[1400px] mx-auto relative overflow-hidden bg-white border border-gray-300 shadow-md" 
         style={{ minHeight: '360px', borderRadius: '4px' }}
       >
         {/* Subtle top indicator line representing Government/India's colors */}
@@ -99,8 +110,15 @@ export default function Slideshow() {
                 </p>
                 
                 <div 
+<<<<<<< HEAD
+                  onClick={() => handleRedirect(slide.link)} 
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm uppercase tracking-wider cursor-pointer transition-colors border-2 border-transparent hover:border-blue-400 shadow-lg rounded-sm"
                   onClick={() => window.location.href = slide.link} 
                   className="inline-flex items-center gap-2 p-5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm uppercase tracking-wider cursor-pointer transition-colors border-2 border-transparent hover:border-blue-400 shadow-lg rounded-sm"
+=======
+                  onClick={() => handleRedirect(slide.link)} 
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm uppercase tracking-wider cursor-pointer transition-colors border-2 border-transparent hover:border-blue-400 shadow-lg rounded-sm"
+>>>>>>> 61f38abd53ceee3cffc96a17506161520b767af7
                 >
                   {slide.btn}
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>

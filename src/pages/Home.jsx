@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import Navbar from '../components/Navbar'
 import DiseaseMap from '../components/DiseaseMap'
@@ -15,6 +15,49 @@ function Home() {
   const [hospitals, setHospitals] = useState([])
   const [locationEnabled, setLocationEnabled] = useState(false)
   const [loadingLocation, setLoadingLocation] = useState(false)
+
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
+  const [selectedHospitalForFeedback, setSelectedHospitalForFeedback] = useState('')
+  const [feedbackCitizenName, setFeedbackCitizenName] = useState('')
+  const [feedbackRating, setFeedbackRating] = useState(0)
+  const [feedbackType, setFeedbackType] = useState('Positive Experience')
+  const [feedbackDesc, setFeedbackDesc] = useState('')
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
+
+  const handleOpenFeedback = (hospitalName) => {
+    setSelectedHospitalForFeedback(hospitalName)
+    setFeedbackCitizenName('')
+    setFeedbackRating(0)
+    setFeedbackType('Positive Experience')
+    setFeedbackDesc('')
+    setShowFeedbackModal(true)
+  }
+
+  const submitFeedback = async () => {
+    if(!feedbackCitizenName.trim() || feedbackRating === 0 || feedbackDesc.trim().length < 20) {
+      alert("Please fill all fields. Description must be at least 20 characters and rating > 0.");
+      return;
+    }
+    setIsSubmittingFeedback(true);
+    try {
+      await addDoc(collection(db, "hospitalFeedback"), {
+        hospitalName: selectedHospitalForFeedback,
+        citizenName: feedbackCitizenName,
+        rating: feedbackRating,
+        feedbackType: feedbackType,
+        description: feedbackDesc,
+        status: "pending",
+        createdAt: serverTimestamp()
+      });
+      alert("Feedback submitted successfully! Thank you.");
+      setShowFeedbackModal(false);
+    } catch(err) {
+      console.error(err);
+      alert("Error submitting feedback. Try again.");
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  }
 
   const handleRoleSelect = (role) => {
     navigate('/login', { state: { role } })
@@ -39,21 +82,8 @@ function Home() {
         ...doc.data()
       }))
       
-      // Fallback with Pune and Kolhapur Municipal/Government Hospitals
-      if (hospitalsData.length === 0) {
-        hospitalsData = [
-          // Pune Hospitals
-          { name: 'Sassoon General Hospital (Govt)', availableBeds: 150, phone: '020 2612 8000', lat: 18.5238, lng: 73.8744 },
-          { name: 'Kamla Nehru General Hospital (PMC)', availableBeds: 60, phone: '020 2555 4500', lat: 18.5284, lng: 73.8569 },
-          { name: 'Rajiv Gandhi Hospital (PMC)', availableBeds: 110, phone: '020 2112 3000', lat: 18.4550, lng: 73.8568 },
-          
-          // Kolhapur Hospitals (Added so Kolhapur users see results!)
-          { name: 'CPR Government Hospital (Govt, Kolhapur)', availableBeds: 250, phone: '0231 264 4251', lat: 16.6994, lng: 74.2238 },
-          { name: 'Savitribai Phule Hospital (KMC, Kolhapur)', availableBeds: 45, phone: '0231 254 0000', lat: 16.7050, lng: 74.2433 },
-          { name: 'Panchganga Hospital (KMC, Kolhapur)', availableBeds: 25, phone: '0231 222 1234', lat: 16.6850, lng: 74.2300 }
-        ];
-      } else {
-        // Filter municipal and government hospitals if they exist in firestore
+      // Filter municipal and government hospitals if they exist in firestore
+      if (hospitalsData.length > 0) {
         const targetHospitals = hospitalsData.filter(h => {
           if (!h.name) return false;
           const nameLower = h.name.toLowerCase();
@@ -242,7 +272,7 @@ function Home() {
               <div style={{ padding: '30px', textAlign: 'center', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fca5a5' }}>
                 <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚠️</div>
                 <h4 style={{ color: '#991b1b', fontSize: '1.1rem' }}>No Govt. Hospitals Found</h4>
-                <p style={{ color: '#b91c1c' }}>सध्या तुमच्या 100 किमी परिसरात कोणतेही सरकारी किंवा म्युनिसिपल हॉस्पिटल उपलब्ध नाही किंवा नोंदणीकृत नाही.</p>
+                <p style={{ color: '#b91c1c' }}>Currently, no government or municipal hospital is available or registered within 100 km of your area..</p>
               </div>
             ) : (
               <div className="hospital-grid">
@@ -276,13 +306,22 @@ function Home() {
                       <span>Contact</span>
                       <span style={{ fontSize: '0.9rem' }}>{hospital.phone}</span>
                     </div>
-                    <button
-                      className="btn btn-primary"
-                      style={{ width: '100%', marginTop: '15px' }}
-                      onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}`, '_blank')}
-                    >
-                      Get Directions
-                    </button>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                      <button
+                        className="btn btn-primary"
+                        style={{ flex: 1 }}
+                        onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}`, '_blank')}
+                      >
+                        Get Directions
+                      </button>
+                      <button
+                        className="btn"
+                        style={{ flex: 1, backgroundColor: '#3b82f6', color: 'white' }}
+                        onClick={() => handleOpenFeedback(hospital.name)}
+                      >
+                        Give Feedback
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -313,6 +352,57 @@ function Home() {
 
       </div>
       <Footer />
+      
+      {showFeedbackModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ backgroundColor: 'white', padding: '30px', width: '90%', maxWidth: '500px', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ marginBottom: '20px', color: '#0f172a' }}>Hospital Feedback</h3>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#475569' }}>Hospital</label>
+              <input type="text" value={selectedHospitalForFeedback} readOnly style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9' }} />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#475569' }}>Your Name</label>
+              <input type="text" placeholder="Enter your name" value={feedbackCitizenName} onChange={(e) => setFeedbackCitizenName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#475569' }}>Rating</label>
+              <div style={{ display: 'flex', gap: '10px', fontSize: '24px', cursor: 'pointer' }}>
+                {[1,2,3,4,5].map(star => (
+                   <span key={star} onClick={() => setFeedbackRating(star)} style={{ color: star <= feedbackRating ? '#fbbf24' : '#e2e8f0' }}>★</span>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#475569' }}>Feedback Type</label>
+              <select value={feedbackType} onChange={(e) => setFeedbackType(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white' }}>
+                 <option>Positive Experience</option>
+                 <option>Long Waiting Time</option>
+                 <option>Staff Behavior Issue</option>
+                 <option>Cleanliness Problem</option>
+                 <option>Medicine Unavailability</option>
+                 <option>Other Issue</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#475569' }}>Description (min 20 chars)</label>
+              <textarea placeholder="Describe your experience..." value={feedbackDesc} onChange={(e) => setFeedbackDesc(e.target.value)} rows="4" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', resize: 'vertical' }}></textarea>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+               <button onClick={() => setShowFeedbackModal(false)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer' }}>Cancel</button>
+               <button onClick={submitFeedback} disabled={isSubmittingFeedback} style={{ padding: '10px 20px', borderRadius: '6px', border: 'none', backgroundColor: '#3b82f6', color: 'white', cursor: isSubmittingFeedback ? 'not-allowed' : 'pointer' }}>
+                 {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

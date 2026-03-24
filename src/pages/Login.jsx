@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { signInWithPopup } from "firebase/auth"
-import { doc, getDoc, setDoc } from "firebase/firestore"
+import { doc, getDoc, setDoc, query, where, collection, getDocs } from "firebase/firestore"
 import { auth, db, googleProvider } from "../firebase"
 
 function Login() {
@@ -13,13 +13,34 @@ function Login() {
   
   const selectedRole = location.state?.role || 'citizen'
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
+
+    // Real Hospital Authentication from Firestore
+    if (selectedRole === 'hospital') {
+      try {
+        const q = query(collection(db, "hospitals"), where("email", "==", emailOrUser), where("password", "==", password));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const hospitalData = querySnapshot.docs[0].data();
+          const hospitalId = querySnapshot.docs[0].id;
+          
+          localStorage.setItem("role", "hospital");
+          localStorage.setItem("isAuth", "true");
+          localStorage.setItem("hospitalId", hospitalId);
+          localStorage.setItem("hospitalName", hospitalData.name);
+          
+          navigate("/hospital");
+          return;
+        }
+      } catch (err) {
+        console.error("Error logging in hospital:", err);
+      }
+    }
 
     // 1. Check if it matches existing simple dummy credentials
     const isDummyValid = 
       (selectedRole === 'citizen' && emailOrUser === 'citizen' && password === '123') ||
-      (selectedRole === 'hospital' && emailOrUser === 'hospital' && password === '123') ||
       (selectedRole === 'authority' && emailOrUser === 'authority' && password === '123')
       
     // 2. Check if it matches stored registered user
@@ -82,10 +103,8 @@ function Login() {
       <div style={{ background: 'white', borderRadius: '24px', padding: '48px 40px', width: '100%', maxWidth: '440px', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05)', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
         
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: 'white', fontSize: '32px', boxShadow: '0 10px 25px -5px rgba(14, 165, 233, 0.4)' }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-            </svg>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <img src="/logo.png" alt="Arogya360 Logo" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
           </div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: '700', color: '#0f172a', marginBottom: '6px' }}>Smart Health System</h1>
           <p style={{ color: '#64748b', fontSize: '0.95rem' }}>
@@ -127,31 +146,41 @@ function Login() {
           </button>
         </form>
 
-        <div style={{ marginTop: '24px', textAlign: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
-            <div style={{ flex: 1, backgroundColor: '#e2e8f0', height: '1px' }}></div>
-            <span style={{ padding: '0 16px', color: '#94a3b8', fontSize: '0.85rem', fontWeight: '500' }}>OR</span>
-            <div style={{ flex: 1, backgroundColor: '#e2e8f0', height: '1px' }}></div>
-          </div>
-          <button 
-            type="button" 
-            onClick={handleGoogleLogin} 
-            style={{ width: '100%', padding: '14px', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '0.95rem', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#334155' }}>
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" alt="google"/>
-            Continue with Google
-          </button>
-        </div>
+        {selectedRole === 'citizen' ? (
+          <>
+            <div style={{ marginTop: '24px', textAlign: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
+                <div style={{ flex: 1, backgroundColor: '#e2e8f0', height: '1px' }}></div>
+                <span style={{ padding: '0 16px', color: '#94a3b8', fontSize: '0.85rem', fontWeight: '500' }}>OR</span>
+                <div style={{ flex: 1, backgroundColor: '#e2e8f0', height: '1px' }}></div>
+              </div>
+              <button 
+                type="button" 
+                onClick={handleGoogleLogin} 
+                style={{ width: '100%', padding: '14px', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '0.95rem', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#334155' }}>
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" alt="google"/>
+                Continue with Google
+              </button>
+            </div>
 
-        <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.95rem' }}>
-          <span style={{ color: '#64748b' }}>New User? </span>
-          <Link to="/register" style={{ color: '#0ea5e9', fontWeight: '600', textDecoration: 'none' }}>Register</Link>
-        </div>
-        
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <Link to="/" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem' }}>
-            ← Back to Role Selection
-          </Link>
-        </div>
+            <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.95rem' }}>
+              <span style={{ color: '#64748b' }}>New User? </span>
+              <Link to="/register" style={{ color: '#0ea5e9', fontWeight: '600', textDecoration: 'none' }}>Register</Link>
+            </div>
+            
+            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+              <Link to="/" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '0.875rem' }}>
+                ← Back to Role Selection
+              </Link>
+            </div>
+          </>
+        ) : (
+          <div style={{ marginTop: '32px', textAlign: 'center' }}>
+            <Link to="/" style={{ color: '#64748b', textDecoration: 'none', fontSize: '0.95rem', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              ← Back to Role Selection
+            </Link>
+          </div>
+        )}
 
       </div>
     </div>
