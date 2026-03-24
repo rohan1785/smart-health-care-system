@@ -15,7 +15,7 @@ function Navbar() {
       position: 'fixed', top: 0, left: 0, right: 0,
       height: '80px', background: '#ffffff',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 40px', zIndex: 100,
+      padding: '0 40px', zIndex: 9999,
       boxShadow: '0 2px 10px rgba(0,0,0,0.05)', fontFamily: 'Inter, sans-serif'
     }}>
       {/* Brand Section */}

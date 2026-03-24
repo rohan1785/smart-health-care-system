@@ -4,6 +4,7 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase'
 import Navbar from '../components/Navbar'
 import DiseaseMap from '../components/DiseaseMap'
+import Footer from '../components/Footer'
 
 function Home() {
   const navigate = useNavigate()
@@ -35,13 +36,21 @@ function Home() {
         ...doc.data()
       }))
       
-      // Provide fallback data if firestore collection is empty
+      // Fallback with Pune Municipal Corporation Hospitals
       if (hospitalsData.length === 0) {
         hospitalsData = [
-          { name: 'City Central Hospital', distance: '2.4 km', availableBeds: 45, phone: '+1 234 567 8900' },
-          { name: 'Metro Health Care', distance: '3.8 km', availableBeds: 12, phone: '+1 234 567 8901' },
-          { name: 'Sunrise Medical Center', distance: '5.1 km', availableBeds: 110, phone: '+1 234 567 8902' }
+          { name: 'Kamla Nehru General Hospital (PMC)', distance: '4.2 km', availableBeds: 60, phone: '020 2555 4500' },
+          { name: 'Naidu Infectious Diseases Hospital (PMC)', distance: '1.8 km', availableBeds: 12, phone: '020 2605 8458' },
+          { name: 'Rajiv Gandhi Hospital (PMC)', distance: '6.5 km', availableBeds: 110, phone: '020 2112 3000' }
         ];
+      } else {
+        // Filter only municipal hospitals if they exist in firestore
+        const municipalHospitals = hospitalsData.filter(h => 
+          (h.name && (h.name.toLowerCase().includes('municipal') || h.name.toLowerCase().includes('pmc') || h.name.toLowerCase().includes('corporation'))) || h.isMunicipal
+        );
+        if (municipalHospitals.length > 0) {
+          hospitalsData = municipalHospitals;
+        }
       }
       setHospitals(hospitalsData)
     })
@@ -175,6 +184,7 @@ function Home() {
                   <button
                     className="btn btn-primary"
                     style={{ width: '100%', marginTop: '15px' }}
+                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}`, '_blank')}
                   >
                     Get Directions
                   </button>
@@ -206,6 +216,7 @@ function Home() {
         </div>
 
       </div>
+      <Footer />
     </>
   )
 }
