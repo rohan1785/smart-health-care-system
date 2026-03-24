@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase'
+import Navbar from '../components/Navbar'
+import DiseaseMap from '../components/DiseaseMap'
 
 function Home() {
   const navigate = useNavigate()
@@ -52,55 +54,51 @@ function Home() {
 
   return (
     <>
+      <Navbar />
       {/* Landing Page Hero Section */}
       <div className="landing-page">
-        <div className="hero-section">
-          <h1 className="hero-title">Arogya360</h1>
-          <p className="hero-subtitle">
-            Municipal Corporation Under Arogya360
-          </p>
-
-          <div className="portal-cards">
-
-            <div onClick={() => handleRoleSelect('hospital')} className="portal-card" style={{ cursor: 'pointer' }}>
-              <div className="portal-icon">🏥</div>
-              <h3>Hospital Dashboard</h3>
-              <p>Manage hospital resources, bed availability, and patient information</p>
+        {/* New Hero Section */}
+        <div style={{ backgroundColor: '#ffffff', paddingTop: '120px', paddingBottom: '80px', paddingLeft: '40px', paddingRight: '40px' }}>
+          <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', gap: '60px', alignItems: 'center', flexWrap: 'wrap' }}>
+            
+            {/* Left Column */}
+            <div style={{ flex: '1 1 500px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#FEF3C7', color: '#D97706', padding: '6px 16px', borderRadius: '20px', fontSize: '0.9rem', fontWeight: '600', marginBottom: '24px' }}>
+                <span style={{color: '#D97706'}}>✔</span> #1 Health & Wellness Platform in City
+              </div>
+              
+              <h1 style={{ fontSize: '3.5rem', fontWeight: '800', color: '#0f172a', lineHeight: '1.2', margin: '0 0 20px 0' }}>
+                City's Most Trusted <br/>Health Management System
+              </h1>
+              
+              <p style={{ fontSize: '1.1rem', color: '#475569', marginBottom: '20px', lineHeight: '1.6' }}>
+                Professional Healthcare Services That Drive Real Results | 4.9★ Rating | 12+ Top Hospitals
+              </p>
+              
+              <p style={{ fontSize: '1rem', color: '#64748b', marginBottom: '32px', lineHeight: '1.6' }}>
+                Get direct access to real-time hospital bed availability and disease tracking with zero delay. Stay safe and informed.
+              </p>
+              
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '40px' }}>
+                <button 
+                  onClick={() => document.getElementById('citizen-section').scrollIntoView({ behavior: 'smooth' })}
+                  style={{ padding: '14px 28px', background: '#f97316', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '1rem', cursor: 'pointer', transition: 'all 0.3s', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <span style={{fontSize: '1.2rem'}}>📄</span> Find Hospitals
+                </button>
+              </div>
             </div>
-
-            <div onClick={() => handleRoleSelect('authority')} className="portal-card" style={{ cursor: 'pointer' }}>
-              <div className="portal-icon">📊</div>
-              <h3>Authority Dashboard</h3>
-              <p>Monitor city health analytics, send alerts, and predict disease outbreaks</p>
+            
+            {/* Right Column (Map) */}
+            <div style={{ flex: '1 1 500px', position: 'relative' }}>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', height: '480px', position: 'relative', background: '#f8fafc' }}>
+                <DiseaseMap />
+              </div>
             </div>
+            
           </div>
         </div>
 
-        {/* Stats Section */}
-        <div className="stats-section">
-          <div className="stats-grid">
-            <div className="stat-card primary">
-              <div className="stat-icon">🏥</div>
-              <h3>12</h3>
-              <p>Total Hospitals</p>
-            </div>
-            <div className="stat-card danger">
-              <div className="stat-icon">🤒</div>
-              <h3>325</h3>
-              <p>Total Patients</p>
-            </div>
-            <div className="stat-card secondary">
-              <div className="stat-icon">🛏️</div>
-              <h3>140</h3>
-              <p>Available Beds</p>
-            </div>
-            <div className="stat-card accent">
-              <div className="stat-icon">⚠️</div>
-              <h3>45</h3>
-              <p>Active Cases</p>
-            </div>
-          </div>
-        </div>
 
         {/* Citizen Portal Section merged from Citizen.jsx */}
         <div id="citizen-section" style={{ padding: '40px 20px', maxWidth: '1200px', margin: '0 auto' }}>
