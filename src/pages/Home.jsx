@@ -1,6 +1,12 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 function Home() {
+  const navigate = useNavigate()
+
+  const handleRoleSelect = (role) => {
+    navigate('/login', { state: { role } })
+  }
+
   return (
     <>
       {/* Landing Page Hero Section */}
@@ -13,23 +19,23 @@ function Home() {
           </p>
 
           <div className="portal-cards">
-            <Link to="/citizen" className="portal-card">
+            <div onClick={() => handleRoleSelect('citizen')} className="portal-card" style={{ cursor: 'pointer' }}>
               <div className="portal-icon">👤</div>
               <h3>Citizen Portal</h3>
               <p>Access health alerts, find nearby hospitals, and manage your health records</p>
-            </Link>
+            </div>
 
-            <Link to="/hospital" className="portal-card">
+            <div onClick={() => handleRoleSelect('hospital')} className="portal-card" style={{ cursor: 'pointer' }}>
               <div className="portal-icon">🏥</div>
               <h3>Hospital Dashboard</h3>
               <p>Manage hospital resources, bed availability, and patient information</p>
-            </Link>
+            </div>
 
-            <Link to="/authority" className="portal-card">
+            <div onClick={() => handleRoleSelect('authority')} className="portal-card" style={{ cursor: 'pointer' }}>
               <div className="portal-icon">📊</div>
               <h3>Authority Dashboard</h3>
               <p>Monitor city health analytics, send alerts, and predict disease outbreaks</p>
-            </Link>
+            </div>
           </div>
         </div>
 
@@ -112,4 +118,3 @@ function Home() {
 }
 
 export default Home
-

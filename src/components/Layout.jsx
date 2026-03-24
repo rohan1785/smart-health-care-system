@@ -6,8 +6,8 @@ function Layout({ children }) {
   const navigate = useNavigate()
 
   const logout = () => {
-    localStorage.removeItem('role')
-    navigate('/login')
+    localStorage.clear()
+    navigate('/')
   }
 
   return (

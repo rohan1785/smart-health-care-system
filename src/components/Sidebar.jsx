@@ -2,14 +2,26 @@ import { Link, useLocation } from 'react-router-dom'
 
 function Sidebar() {
   const location = useLocation()
+  
+  const isAuth = localStorage.getItem("isAuth")
+  const role = localStorage.getItem("role")
 
   const menuItems = [
     { href: '/', icon: '🏠', label: 'Home' },
-    { href: '/citizen', icon: '👤', label: 'Citizen Portal' },
-    { href: '/hospital', icon: '🏥', label: 'Hospital Dashboard' },
-    { href: '/authority', icon: '📊', label: 'Authority Dashboard' },
-    { href: '/login', icon: '🔐', label: 'Login' },
   ]
+
+  if (role === 'citizen') {
+    menuItems.push({ href: '/citizen', icon: '👤', label: 'Citizen Portal' })
+  } else if (role === 'hospital') {
+    menuItems.push({ href: '/hospital', icon: '🏥', label: 'Hospital Dashboard' })
+  } else if (role === 'authority') {
+    menuItems.push({ href: '/authority', icon: '📊', label: 'Authority Dashboard' })
+  }
+
+  // NEW: Profile is visible ONLY after login
+  if (isAuth === 'true') {
+    menuItems.push({ href: '/profile', icon: '⚙️', label: 'My Profile' })
+  }
 
   return (
     <aside className="sidebar">
