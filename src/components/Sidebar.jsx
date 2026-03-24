@@ -7,12 +7,10 @@ function Sidebar() {
   const role = localStorage.getItem("role")
 
   const menuItems = [
-    { href: '/', icon: '🏠', label: 'Home' },
+    { href: '/', icon: '🏠', label: 'Home' }
   ]
 
-  if (role === 'citizen') {
-    menuItems.push({ href: '/citizen', icon: '👤', label: 'Citizen Portal' })
-  } else if (role === 'hospital') {
+  if (role === 'hospital') {
     menuItems.push({ href: '/hospital', icon: '🏥', label: 'Hospital Dashboard' })
   } else if (role === 'authority') {
     menuItems.push({ href: '/authority', icon: '📊', label: 'Authority Dashboard' })

@@ -6,7 +6,6 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
 import Hospital from './pages/Hospital'
-import Citizen from './pages/Citizen'
 import Authority from './pages/Authority'
 
 const QA_DATASET = [
@@ -380,15 +379,6 @@ export default function App() {
             element={
               <ProtectedRoute allowedRole="hospital">
                 <Layout><Hospital /></Layout>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/citizen" 
-            element={
-              <ProtectedRoute allowedRole="citizen">
-                <Layout><Citizen /></Layout>
               </ProtectedRoute>
             } 
           />
