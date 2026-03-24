@@ -16,8 +16,8 @@ function Sidebar() {
     menuItems.push({ href: '/authority', icon: '📊', label: 'Authority Dashboard' })
   }
 
-  // NEW: Profile is visible ONLY after login
-  if (isAuth === 'true') {
+  // NEW: Profile is visible ONLY after login for non-hospital and non-authority roles
+  if (isAuth === 'true' && role !== 'hospital' && role !== 'authority') {
     menuItems.push({ href: '/profile', icon: '⚙️', label: 'My Profile' })
   }
 

@@ -24,7 +24,7 @@ function Navbar() {
           Arogya360🏥
         </h1>
         <span style={{ color: '#6B7280', fontSize: '0.8rem', fontWeight: '500' }}>
-          Municipal Corporation Under Arogya360
+          Under Municipal Corporation
         </span>
       </div>
 
@@ -87,6 +87,18 @@ function Navbar() {
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               👶 Hirkani
+            </button>
+            <button
+            onClick={() => handleNavigation('/')}
+            style={{
+              width: '100%', padding: '12px 20px', background: 'none', border: 'none',
+              textAlign: 'left', cursor: 'pointer', fontSize: '0.95rem', color: '#374151',
+              fontWeight: '500', transition: 'background 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              🏠 Home
             </button>
           </div>
         )}

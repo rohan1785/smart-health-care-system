@@ -48,38 +48,10 @@ body {
 /* ==================== LANDING PAGE STYLES ==================== */
 .landing-page {
   min-height: 100vh;
-  background: radial-gradient(ellipse at top, #0f172a 0%, #1e293b 100%);
+  background: #ffffff;
   position: relative;
   overflow: hidden;
   font-family: 'Inter', sans-serif;
-}
-
-.landing-page::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  background-position: center top;
-  pointer-events: none;
-}
-
-.landing-page::after {
-  content: '';
-  position: absolute;
-  top: -20%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80%;
-  height: 60vh;
-  background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
-  z-index: 0;
-  pointer-events: none;
 }
 
 .hero-section {

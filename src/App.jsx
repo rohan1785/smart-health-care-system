@@ -7,6 +7,7 @@ import Register from './pages/Register'
 import Profile from './pages/Profile'
 import Hospital from './pages/Hospital'
 import Authority from './pages/Authority'
+import Hirkani from './pages/Hirkani'
 
 const QA_DATASET = [
   {id:1,category:"General System",keywords:["what is","smart health care","system","about","explain","describe"],question:"What is the Smart Health Care System?",answer:"The Smart Health Care System is a digital platform connecting <b>Citizens, Hospitals, and Authorities</b>. Citizens book appointments and view health records. Hospitals manage patients and medical data. Authorities monitor health analytics."},
@@ -364,6 +365,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/hirkani" element={<Hirkani />} />
           
           <Route 
             path="/profile" 
