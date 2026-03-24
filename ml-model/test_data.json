@@ -1,0 +1,51 @@
+[
+  {
+    "test_name": "Normal Data",
+    "input": {
+      "hospital_id": "normal-hospital",
+      "current_beds": 55,
+      "previous_beds": 58,
+      "average_beds": 52,
+      "current_equipment": {"ventilators": 5, "icuBeds": 12, "ambulances": 2},
+      "history": [{"beds": 52, "equipment": {"ventilators": 5, "icuBeds": 12, "ambulances": 2}}]
+    },
+    "expected": {"status": "Normal", "severity": "Low"}
+  },
+  {
+    "test_name": "Bed Spike Fraud",
+    "input": {
+      "hospital_id": "spike-hospital",
+      "current_beds": 150,
+      "previous_beds": 50,
+      "average_beds": 60,
+      "current_equipment": {"ventilators": 5, "icuBeds": 12, "ambulances": 2},
+      "history": [{"beds": 55, "equipment": {"ventilators": 5, "icuBeds": 12, "ambulances": 2}}]
+    },
+    "expected": {"status": "Suspicious", "severity": "High", "reason": "Sudden Bed Spike"}
+  },
+  {
+    "test_name": "Static Fraud",
+    "input": {
+      "hospital_id": "static-hospital",
+      "current_beds": 5,
+      "previous_beds": 5,
+      "average_beds": 50,
+      "current_equipment": {"ventilators": 0, "icuBeds": 0, "ambulances": 0},
+      "history": [{"beds": 5, "equipment": {"ventilators": 0, "icuBeds": 0, "ambulances": 0}}]
+    },
+    "expected": {"status": "Suspicious", "severity": "Medium"}
+  },
+  {
+    "test_name": "Equipment Fraud",
+    "input": {
+      "hospital_id": "equip-fraud",
+      "current_beds": 50,
+      "previous_beds": 48,
+      "average_beds": 50,
+      "current_equipment": {"ventilators": 25, "icuBeds": 30, "ambulances": 15},
+      "previous_equipment": {"ventilators": 5, "icuBeds": 12, "ambulances": 2},
+      "avg_equipment": {"ventilators": 6, "icuBeds": 10, "ambulances": 2}
+    },
+    "expected": {"status": "Suspicious", "severity": "High", "reason": "Ventilator Spike"}
+  }
+]

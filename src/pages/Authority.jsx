@@ -1,7 +1,15 @@
-import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc } from "firebase/firestore"
+>>>>>>> 61f38abd53ceee3cffc96a17506161520b767af7
 import { db } from "../firebase"
-import { Line } from 'react-chartjs-2'
+=======
+import { useState, useEffect } from 'react'
+import { collection, getDocs, query, where, orderBy, onSnapshot, updateDoc, addDoc, serverTimestamp, limit, doc } from "firebase/firestore"
+import { db } from "../firebase"
+=======
+import { collection, getDocs, addDoc } from "firebase/firestore"
+>>>>>>> 61f38abd53ceee3cffc96a17506161520b767af7
+import { db } from "../firebase"
+import { Line, Bar } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
   LineElement,
@@ -9,9 +17,11 @@ import {
   LinearScale,
   PointElement,
   Legend,
-  Tooltip
+  Tooltip,
+  BarElement
 } from 'chart.js'
 import DiseaseMap from '../components/DiseaseMap'
+ChartJS.register(BarElement)
 
 ChartJS.register(
   LineElement,
@@ -23,7 +33,126 @@ ChartJS.register(
 )
 
 function Authority() {
+  const [selectedHospitalForAlert, setSelectedHospitalForAlert] = useState('')
+  const [alertMessageText, setAlertMessageText] = useState('')
+  const [name, setName] = useState('')
+  const [beds, setBeds] = useState('')
+  const [available, setAvailable] = useState('')
+  
+  const [hospitals, setHospitals] = useState([])
+  const [totalBeds, setTotalBeds] = useState(0)
+  const [availableBedsCount, setAvailableBedsCount] = useState(0)
+  const [totalActiveCases, setTotalActiveCases] = useState(0)
+  const [alertsSent, setAlertsSent] = useState(0)
+  
+  const addHospital = async () => {
+    if (!name || !beds || !available) return
+
+    try {
+      const email = name.toLowerCase().replace(/[^a-z0-9]/g, '') + '@hospital.com';
+      const password = Math.random().toString(36).slice(-8);
+
+      const docRef = await addDoc(collection(db, "hospitals"), {
+        name: name,
+        totalBeds: parseInt(beds),
+        availableBeds: parseInt(available),
+        location: "Not Specified",
+        email: email,
+        password: password,
+        dengueCases: 0,
+        fluCases: 0
+      });
+
+      setHospitals(prev => [...prev, { id: docRef.id, name: name, totalBeds: parseInt(beds), availableBeds: parseInt(available), location: "Not Specified", email: email, password: password, dengueCases: 0, fluCases: 0 }])
+      setTotalBeds(prev => prev + parseInt(beds))
+      setAvailableBedsCount(prev => prev + parseInt(available))
+
+      setName('')
+      setBeds('')
+      setAvailable('')
+      
+      alert(`Hospital added successfully!
+
+Please save these login credentials for the hospital:
+Email: ${email}
+Password: ${password}`);
+    } catch (error) {
+      console.error("Error adding hospital: ", error);
+      alert("Failed to add hospital to Firebase");
+    }
+  }
+>>>>>>> 61f38abd53ceee3cffc96a17506161520b767af7
+
+  useEffect(() => {
+    const alert = localStorage.getItem('healthAlert') || ''
+    setAlertMessage(alert)
+  }, [])
+=======
   const [alertMessage, setAlertMessage] = useState('')
+  const [fraudAlerts, setFraudAlerts] = useState([])
+  const [suspiciousHospitals, setSuspiciousHospitals] = useState([])
+  const [trustChartData, setTrustChartData] = useState({
+    labels: ['Hospital 1', 'Hospital 2', 'Hospital 3', 'Hospital 4', 'Hospital 5'],
+    datasets: [{
+      label: 'Trust Score',
+      data: [95, 85, 60, 92, 78],
+      backgroundColor: 'rgba(16, 185, 129, 0.6)',
+    }]
+  })
+  const [selectedHospitalForAlert, setSelectedHospitalForAlert] = useState('')
+  const [alertMessageText, setAlertMessageText] = useState('')
+  const [name, setName] = useState('')
+  const [beds, setBeds] = useState('')
+  const [available, setAvailable] = useState('')
+  
+  const [hospitals, setHospitals] = useState([])
+  const [totalBeds, setTotalBeds] = useState(0)
+  const [availableBedsCount, setAvailableBedsCount] = useState(0)
+  const [totalActiveCases, setTotalActiveCases] = useState(0)
+  const [alertsSent, setAlertsSent] = useState(0)
+
+  const addHospital = async () => {
+    if (!name || !beds || !available) return
+
+    try {
+      const email = name.toLowerCase().replace(/[^a-z0-9]/g, '') + '@hospital.com';
+      const password = Math.random().toString(36).slice(-8);
+
+      const docRef = await addDoc(collection(db, "hospitals"), {
+        name: name,
+        totalBeds: parseInt(beds),
+        availableBeds: parseInt(available),
+        location: "Not Specified",
+        email: email,
+        password: password,
+        dengueCases: 0,
+        fluCases: 0
+      });
+
+      setHospitals(prev => [...prev, { id: docRef.id, name: name, totalBeds: parseInt(beds), availableBeds: parseInt(available), location: "Not Specified", email: email, password: password, dengueCases: 0, fluCases: 0 }])
+      setTotalBeds(prev => prev + parseInt(beds))
+      setAvailableBedsCount(prev => prev + parseInt(available))
+
+      setName('')
+      setBeds('')
+      setAvailable('')
+      
+      alert(`Hospital added successfully!
+
+Please save these login credentials for the hospital:
+Email: ${email}
+Password: ${password}`);
+    } catch (error) {
+      console.error("Error adding hospital: ", error);
+      alert("Failed to add hospital to Firebase");
+    }
+  }
+
+  useEffect(() => {
+    const alert = localStorage.getItem('healthAlert') || ''
+    setAlertMessage(alert)
+  }, [])
+=======
   const [selectedHospitalForAlert, setSelectedHospitalForAlert] = useState('')
   const [alertMessageText, setAlertMessageText] = useState('')
   const [name, setName] = useState('')
@@ -68,10 +197,49 @@ function Authority() {
       alert("Failed to add hospital to Firebase");
     }
   }
+>>>>>>> 61f38abd53ceee3cffc96a17506161520b767af7
 
   useEffect(() => {
     const alert = localStorage.getItem('healthAlert') || ''
     setAlertMessage(alert)
+  }, [])
+
+  // Fraud Alerts Realtime (filter fraud-related)
+  useEffect(() => {
+    const q = query(
+      collection(db, 'alerts'),
+      orderBy('timestamp', 'desc'),
+      limit(10)
+    )
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const alerts = snapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp?.toDate() || new Date()
+        }))
+        .filter(a => a.reason && (a.reason.toLowerCase().includes('fraud') || a.reason.toLowerCase().includes('suspicious')))
+      setFraudAlerts(alerts)
+    })
+    return unsubscribe
+  }, [])
+
+  // Suspicious Hospitals
+  useEffect(() => {
+    const q = query(
+      collection(db, 'hospitals'), 
+      where('fraudStatus', '==', 'Suspicious'),
+      orderBy('trustScore')
+    )
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const hospitals = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        lastUpdated: doc.data().lastUpdated?.toDate()
+      }))
+      setSuspiciousHospitals(hospitals)
+    })
+    return unsubscribe
   }, [])
 
   const [chartData, setChartData] = useState({
@@ -198,6 +366,29 @@ function Authority() {
         beginAtZero: true,
       },
     },
+  }
+
+  // Fraud alert actions
+  const verifyAlert = async (alertId) => {
+    await updateDoc(doc(db, 'alerts', alertId), { status: 'Verified' })
+    alert('Alert marked as Verified')
+  }
+
+  const rejectAlert = async (alertId) => {
+    await updateDoc(doc(db, 'alerts', alertId), { status: 'Rejected' })
+    alert('Alert marked as Rejected')
+  }
+
+  const sendFraudAlert = async () => {
+    await addDoc(collection(db, 'alerts'), {
+      hospitalId: 'system',
+      hospitalName: 'Fraud Detection System', 
+      reason: 'New ML model detects potential data fraud patterns',
+      status: 'Pending',
+      severity: 'Medium',
+      timestamp: serverTimestamp()
+    })
+    alert('Fraud system alert sent!')
   }
 
   const sendAlert = () => {
