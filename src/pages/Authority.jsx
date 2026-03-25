@@ -112,7 +112,7 @@ function Authority() {
           ...doc.data(),
           timestamp: doc.data().timestamp?.toDate() || new Date()
         }))
-        .filter(a => a.reason && (a.reason.toLowerCase().includes('fraud') || a.reason.toLowerCase().includes('suspicious')))
+        .filter(a => a.type === 'fake_entry' || a.severity === 'High' || a.status === 'Pending' || (a.message && (a.message.toLowerCase().includes('fraud') || a.message.toLowerCase().includes('suspicious'))) || (a.reason && (a.reason.toLowerCase().includes('fraud') || a.reason.toLowerCase().includes('suspicious'))))
       setFraudAlerts(alerts)
     })
     return unsubscribe
@@ -316,6 +316,55 @@ function Authority() {
 
 
 
+{/* ML Fraud Dashboard */}
+<div className="chart-container" style={{ marginTop: '30px', border: '2px solid #fecaca', backgroundColor: '#fff1f2', borderRadius: '12px' }}>
+  <h3 className="chart-title" style={{ color: '#991b1b', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.4rem' }}>
+    🛡️ ML Fraud Detection System Live
+  </h3>
+  <p style={{ color: '#991b1b', fontSize: '0.9rem', marginBottom: '15px' }}>The system is constantly monitoring incoming hospital data for sudden spikes, illogical bed counts, and fake entries using an Isolation Forest ML model.</p>
+  
+  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) minmax(300px, 1fr)', gap: '20px', marginTop: '15px' }}>
+    <div style={{ background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #fca5a5', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+       <h4 style={{ color: '#b91c1c', marginBottom: '15px', fontSize: '1.1rem' }}>⚠️ Suspicious Hospitals</h4>
+       {suspiciousHospitals.length === 0 ? (
+         <div style={{ padding: '20px', background: '#ecfdf5', borderRadius: '8px', border: '1px dashed #34d399', textAlign: 'center' }}>
+           <p style={{ color: '#065f46', fontWeight: 'bold' }}>All hospitals are operating normally.</p>
+         </div>
+       ) : (
+         suspiciousHospitals.map(h => (
+           <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#fef2f2', marginBottom: '10px', borderRadius: '8px', borderLeft: '4px solid #ef4444' }}>
+             <div>
+               <span style={{ fontWeight: 'bold', color: '#7f1d1d', display: 'block' }}>{h.name}</span>
+               <span style={{ color: '#b91c1c', fontSize: '0.8rem' }}>Last Update Triggered ML Anomaly</span>
+             </div>
+             <div style={{ background: '#fee2e2', padding: '5px 10px', borderRadius: '20px', fontSize: '0.85rem' }}>
+               <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Trust: {Math.round(h.trustScore || 0)}%</span>
+             </div>
+           </div>
+         ))
+       )}
+    </div>
+
+    <div style={{ background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #fca5a5', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+       <h4 style={{ color: '#b91c1c', marginBottom: '15px', fontSize: '1.1rem' }}>🚨 Recent Integrity Alerts</h4>
+       {fraudAlerts.length === 0 ? (
+         <p style={{ color: '#64748b' }}>No recent integrity alerts.</p>
+       ) : (
+         fraudAlerts.slice(0, 4).map(a => (
+           <div key={a.id} style={{ padding: '12px', borderBottom: '1px solid #fee2e2', marginBottom: '8px' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+               <div style={{ fontWeight: 'bold', color: '#991b1b', fontSize: '0.95rem' }}>{a.hospitalName}</div>
+               <span style={{ color: '#dc2626', fontSize: '0.75rem', fontWeight: '800', background: '#fee2e2', padding: '2px 8px', borderRadius: '10px' }}>{a.type || 'SYSTEM FLAG'}</span>
+             </div>
+             <div style={{ color: '#b91c1c', fontSize: '0.85rem', marginTop: '6px', lineHeight: '1.4' }}>{a.message || a.reason}</div>
+             <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '8px', fontStyle: 'italic' }}>{a.timestamp.toLocaleString()}</div>
+           </div>
+         ))
+       )}
+    </div>
+  </div>
+</div>
+
 <div className="chart-container">
   <h3 className="chart-title">Add Hospital</h3>
 
@@ -365,6 +414,7 @@ function Authority() {
       <thead>
         <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
           <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '600' }}>Hospital Name</th>
+          <th style={{ padding: '14px 16px', color: '#dc2626', fontWeight: '800' }}>ML Trust Score</th>
           <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '600' }}>Login Email</th>
           <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '600' }}>Password</th>
           <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '600' }}>Total Beds</th>
@@ -381,8 +431,12 @@ function Authority() {
            const aBeds = parseInt(h.availableBeds) || 0;
            const occupancy = tBeds > 0 ? Math.round(((tBeds - aBeds) / tBeds) * 100) : 0;
            return (
-            <tr key={h.id || i} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              <td style={{ padding: '16px', fontWeight: '500', color: '#0f172a' }}>🏥 {h.name}</td>
+            <tr key={h.id || i} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.2s', backgroundColor: h.fraudStatus === 'Suspicious' ? '#fef2f2' : 'transparent' }}>
+              <td style={{ padding: '16px', fontWeight: '500', color: h.fraudStatus === 'Suspicious' ? '#991b1b' : '#0f172a' }}>
+                 🏥 {h.name}
+                 {h.fraudStatus === 'Suspicious' && <span style={{ marginLeft: '8px', fontSize: '0.75rem', background: '#fee2e2', color: '#dc2626', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>FLAGGED</span>}
+              </td>
+              <td style={{ padding: '16px', color: (h.trustScore || 100) < 75 ? '#dc2626' : '#10b981', fontWeight: 'bold' }}>{Math.round(h.trustScore || 100)}%</td>
               <td style={{ padding: '16px', color: '#0ea5e9', fontSize: '0.9rem' }}>{h.email || 'N/A'}</td>
               <td style={{ padding: '16px', color: '#64748b', fontSize: '0.9rem', fontFamily: 'monospace' }}>{h.password || 'N/A'}</td>
               <td style={{ padding: '16px', color: '#334155' }}>{tBeds}</td>
@@ -406,7 +460,7 @@ function Authority() {
           );
         }) : (
           <tr>
-            <td colSpan="9" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>No hospitals registered yet. Add one above!</td>
+            <td colSpan="10" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>No hospitals registered yet. Add one above!</td>
           </tr>
         )}
       </tbody>

@@ -1,0 +1,15 @@
+
+> smart-health-client@1.0.0 build
+> vite build
+
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 64 modules transformed.
+x Build failed in 541ms
+error during build:
+Could not resolve "./index-dfb5c973.js" from "node_modules/firebase/node_modules/@firebase/auth/dist/esm/index.js"
+file: C:/Users/Rohan Umbarepatil/OneDrive/Desktop/Smart-Health-Care/node_modules/firebase/node_modules/@firebase/auth/dist/esm/index.js
+    at getRollupError (file:///C:/Users/Rohan%20Umbarepatil/OneDrive/Desktop/Smart-Health-Care/node_modules/rollup/dist/es/shared/parseAst.js:402:41)
+    at error (file:///C:/Users/Rohan%20Umbarepatil/OneDrive/Desktop/Smart-Health-Care/node_modules/rollup/dist/es/shared/parseAst.js:398:42)
+    at ModuleLoader.handleInvalidResolvedId (file:///C:/Users/Rohan%20Umbarepatil/OneDrive/Desktop/Smart-Health-Care/node_modules/rollup/dist/es/shared/node-entry.js:21710:24)
+    at file:///C:/Users/Rohan%20Umbarepatil/OneDrive/Desktop/Smart-Health-Care/node_modules/rollup/dist/es/shared/node-entry.js:21670:26

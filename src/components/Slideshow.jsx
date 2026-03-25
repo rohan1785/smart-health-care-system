@@ -82,54 +82,51 @@ export default function Slideshow() {
   return (
     <div className="w-full mt-6 mb-16 px-4 md:px-10 font-sans">
       <div 
-        className="max-w-[1280px] mx-auto relative overflow-hidden bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-100" 
+        className="max-w-[1280px] mx-auto relative overflow-hidden bg-white rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-100" 
         style={{ minHeight: '440px' }}
       >
-        {/* Subtle top indicator line representing Government/India's colors */}
-        <div className="absolute top-0 left-0 w-full h-1 flex z-20">
-            <div className="h-full bg-orange-400" style={{flex: 1}}></div>
-            <div className="h-full bg-slate-100" style={{flex: 1}}></div>
-            <div className="h-full bg-green-500" style={{flex: 1}}></div>
-        </div>
+        
 
         {slides.map((slide, i) => (
           <div 
             key={i}
-            className={`absolute inset-0 bg-gradient-to-br ${slide.bgClass} flex items-center transition-all duration-1000 ease-in-out ${i === index ? 'opacity-100 z-10 translate-y-0 scale-100' : 'opacity-0 z-0 translate-y-4 scale-95 pointer-events-none'}`}
+            className={`absolute inset-0 bg-gradient-to-br ${slide.bgClass} flex items-center justify-center transition-all duration-1000 ease-in-out ${i === index ? 'opacity-100 z-10 translate-y-0 scale-100' : 'opacity-0 z-0 translate-y-4 scale-95 pointer-events-none'}`}
           >
-            <div className="relative z-10 px-8 py-12 md:px-16 md:py-0 w-full h-full flex flex-col-reverse md:flex-row items-center justify-center md:justify-between gap-12">
-              
-              {/* Text Info Side */}
-              <div className="flex-1 text-center md:text-left flex flex-col justify-center items-center md:items-start h-full max-w-2xl">
-                <span className="inline-block px-4 py-1.5 bg-white border border-slate-200 text-slate-500 text-[0.7rem] font-bold tracking-widest uppercase mb-6 rounded-full shadow-sm">
-                  Official Initiative
-                </span>
-                <h2 className="text-3xl md:text-[2.75rem] font-extrabold text-slate-900 mb-6 leading-[1.15] tracking-tight">
-                  {slide.title}
-                </h2>
-                <p className="text-base md:text-lg text-slate-600 leading-relaxed mb-8 md:mb-10 font-medium">
-                  {slide.text}
-                </p>
+            <div className="relative z-10 w-full max-w-[1200px] mx-auto px-6 md:px-12 py-12 md:py-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 items-center justify-center gap-10 md:gap-16 w-full">
                 
-                <div 
-                  onClick={() => handleRedirect(slide.link)} 
-                  className="group inline-flex items-center gap-3 px-8 py-4 bg-slate-900 hover:bg-black text-white font-semibold text-sm rounded-full cursor-pointer transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1"
-                >
-                  {slide.btn}
-                  <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                {/* Text Info Side */}
+                <div className="flex flex-col justify-center items-center md:items-start text-center md:text-left order-last md:order-first">
+                  <span className="inline-block px-4 py-1.5 bg-white border border-slate-200 text-slate-500 text-[0.7rem] font-bold tracking-widest uppercase mb-6 rounded-full shadow-sm">
+                    Official Initiative
+                  </span>
+                  <h2 className="text-3xl md:text-[2.75rem] font-extrabold text-slate-900 mb-6 leading-[1.15] tracking-tight">
+                    {slide.title}
+                  </h2>
+                  <p className="text-base md:text-lg text-slate-600 leading-relaxed mb-8 md:mb-10 font-medium max-w-lg">
+                    {slide.text}
+                  </p>
+                  
+                  <div 
+                    onClick={() => handleRedirect(slide.link)} 
+                    className="group inline-flex items-center gap-3 px-8 py-4 bg-slate-900 hover:bg-black text-white font-semibold text-sm rounded-full cursor-pointer transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 w-fit"
+                  >
+                    {slide.btn}
+                    <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                  </div>
                 </div>
-              </div>
 
-              {/* Visual/Icon Side */}
-              <div className="shrink-0 relative flex items-center justify-center w-48 h-48 md:w-80 md:h-80 md:mr-8 md:mb-0 mb-8 mt-4 md:mt-0">
-                 {/* Soft blurred background for aesthetic glassmorphism feel */}
-                 <div className={`absolute inset-0 rounded-full blur-[60px] opacity-40 mix-blend-multiply transition-colors duration-1000 ${slide.iconBg}`}></div>
-                 {/* Main Crisp Icon Circle */}
-                 <div className="relative z-10 w-40 h-40 md:w-56 md:h-56 bg-white/70 backdrop-blur-xl border border-white/80 rounded-full shadow-2xl flex items-center justify-center transform transition-transform duration-700 hover:scale-[1.03]">
-                   {slide.icon}
-                 </div>
-              </div>
+                {/* Visual/Icon Side */}
+                <div className="relative flex items-center justify-center w-full aspect-square max-w-[280px] md:max-w-[320px] mx-auto order-first md:order-last">
+                   {/* Soft blurred background for aesthetic glassmorphism feel */}
+                   <div className={`absolute inset-0 rounded-full blur-[60px] opacity-40 mix-blend-multiply transition-colors duration-1000 ${slide.iconBg}`}></div>
+                   {/* Main Crisp Icon Circle */}
+                   <div className="relative z-10 w-48 h-48 md:w-64 md:h-64 bg-white/70 backdrop-blur-xl border border-white/80 rounded-full shadow-2xl flex items-center justify-center transform transition-transform duration-700 hover:scale-[1.03]">
+                     {slide.icon}
+                   </div>
+                </div>
 
+              </div>
             </div>
           </div>
         ))}

@@ -22,6 +22,12 @@ function Home() {
   const [feedbackCitizenName, setFeedbackCitizenName] = useState('')
   const [feedbackRating, setFeedbackRating] = useState(0)
   const [feedbackType, setFeedbackType] = useState('Positive Experience')
+  const [feedbackDesc, setFeedbackDesc] = useState('')
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
+  
+  // Sorting State
+  const [sortBy, setSortBy] = useState('default')
+  
   // AI Symptom Checker State
   const [symptoms, setSymptoms] = useState('');
   const [symptomLoading, setSymptomLoading] = useState(false);
@@ -35,8 +41,13 @@ function Home() {
   ];
 
   const handleAddSymptom = (symp) => {
-    if (symptoms.toLowerCase().includes(symp.toLowerCase())) return;
-    setSymptoms(prev => prev ? `${prev}, ${symp}` : symp);
+    const sympLower = symp.toLowerCase();
+    if (symptoms.toLowerCase().includes(sympLower)) {
+      const parts = symptoms.split(',').map(s => s.trim()).filter(s => s.toLowerCase() !== sympLower && s !== '');
+      setSymptoms(parts.join(', '));
+    } else {
+      setSymptoms(prev => prev ? `${prev}, ${symp}` : symp);
+    }
   };
 
   const handleOpenFeedback = (hospitalName) => {
@@ -477,6 +488,18 @@ function Home() {
           <div className="chart-container" style={{ marginTop: '40px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
               <h3 className="chart-title" style={{ margin: 0 }}>🏛️ Government & Municipal Hospitals</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{color: '#64748b', fontSize: '0.9rem', fontWeight: '600'}}>Sort by:</span>
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value)}
+                  style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', cursor: 'pointer', background: 'white', color: '#334155', fontWeight: '500' }}
+                >
+                  <option value="default">Default View</option>
+                  <option value="beds">Most Available Beds</option>
+                  <option value="trust">Highest Trust Score</option>
+                </select>
+              </div>
             </div>
             
             {hospitals.length === 0 ? (
@@ -487,7 +510,19 @@ function Home() {
               </div>
             ) : (
               <div className="hospital-grid">
-                {hospitals.map((hospital) => (
+                {[...hospitals].sort((a, b) => {
+                  if (sortBy === 'beds') {
+                    const bedsA = a.currentBeds || a.availableBeds || a.available || 0;
+                    const bedsB = b.currentBeds || b.availableBeds || b.available || 0;
+                    return bedsB - bedsA;
+                  }
+                  if (sortBy === 'trust') {
+                    const trustA = a.trustScore || 100;
+                    const trustB = b.trustScore || 100;
+                    return trustB - trustA;
+                  }
+                  return 0;
+                }).map((hospital) => (
                   <div key={hospital.id} className="hospital-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                       <h3>{hospital.name}</h3>

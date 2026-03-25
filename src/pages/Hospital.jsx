@@ -79,29 +79,89 @@ function Hospital() {
   const handleSave = async () => {
     if (!hospitalId) return;
     setIsSaving(true);
+    
     try {
-      const docRef = doc(db, "hospitals", hospitalId);
+      const currentBeds = parseInt(editTotalBeds) || 0;
+      const currentAvailable = parseInt(editAvailableBeds) || 0;
+      const dengueCasesVal = parseInt(dengueCases) || 0;
+      const fluCasesVal = parseInt(fluCases) || 0;
       const cleanedDiseases = customDiseases.filter(d => d.name.trim() !== '');
-      
+
+      // 1. Validation via Python ML API
+      let mlStatus = "Normal";
+      let mlTrustScore = 100;
+      let mlAnalysisDetail = null;
+
+      try {
+        const mlResponse = await fetch('/api/detect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            hospital_id: hospitalId,
+            current_beds: currentBeds,
+            previous_beds: hospitalData.totalBeds || currentBeds,
+            average_beds: hospitalData.totalBeds || currentBeds
+          })
+        });
+
+        if (mlResponse.ok) {
+          const mlResult = await mlResponse.json();
+          mlStatus = mlResult.status || "Normal";
+          mlTrustScore = mlResult.confidence_score !== undefined ? mlResult.confidence_score : 100;
+          mlAnalysisDetail = mlResult;
+
+          // 2. Alert the Authority Dashboard if Data is Suspicious
+          if (mlStatus === "Suspicious" || mlResult.anomaly_type) {
+            import('firebase/firestore').then(({ addDoc, collection, serverTimestamp }) => {
+              addDoc(collection(db, "alerts"), {
+                hospitalId: hospitalId,
+                hospitalName: hospitalData.name || "Unknown Hospital",
+                type: mlResult.anomaly_type || "fake_entry",
+                message: mlResult.reason || "Suspicious data detected by ML Model. High variance from average operations.",
+                severity: mlResult.severity || "High",
+                timestamp: serverTimestamp(),
+                dataSnapshot: {
+                  current_beds: currentBeds,
+                  previous_beds: hospitalData.totalBeds || currentBeds
+                }
+              }).catch(err => console.error("Failed to write ML alert:", err));
+            });
+          }
+        }
+      } catch (mlErr) {
+        console.error("ML Validation skipped or failed:", mlErr);
+      }
+
+      // 3. Finalize Update to Firestore
+      const docRef = doc(db, "hospitals", hospitalId);
       await updateDoc(docRef, {
-        totalBeds: parseInt(editTotalBeds) || 0,
-        availableBeds: parseInt(editAvailableBeds) || 0,
-        dengueCases: parseInt(dengueCases) || 0,
-        fluCases: parseInt(fluCases) || 0,
+        totalBeds: currentBeds,
+        availableBeds: currentAvailable,
+        dengueCases: dengueCasesVal,
+        fluCases: fluCasesVal,
         sections: sections,
-        customDiseases: cleanedDiseases
+        customDiseases: cleanedDiseases,
+        
+        // ML Metadata fields
+        fraudStatus: mlStatus,
+        trustScore: mlTrustScore,
+        lastMLAnalysis: mlAnalysisDetail,
+        lastUpdatedByDash: new Date().toISOString()
       });
-      alert('Hospital data updated successfully!');
+      
+      alert('Hospital data validated and updated successfully!');
       setIsEditing(false);
       setCustomDiseases(cleanedDiseases);
       setHospitalData({
         ...hospitalData,
-        totalBeds: parseInt(editTotalBeds),
-        availableBeds: parseInt(editAvailableBeds),
-        dengueCases: parseInt(dengueCases),
-        fluCases: parseInt(fluCases),
+        totalBeds: currentBeds,
+        availableBeds: currentAvailable,
+        dengueCases: dengueCasesVal,
+        fluCases: fluCasesVal,
         sections: sections,
-        customDiseases: cleanedDiseases
+        customDiseases: cleanedDiseases,
+        fraudStatus: mlStatus,
+        trustScore: mlTrustScore
       });
     } catch (error) {
       console.error("Error updating document: ", error);

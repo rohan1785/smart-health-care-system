@@ -36,11 +36,11 @@ else:
     with open(MODEL_FILE, 'wb') as f:
         pickle.dump(model, f)
 
-@app.route('/health', methods=['GET'])
+@app.route('/api/health', methods=['GET'])
 def health():
     return jsonify({"status": "healthy", "model": "Isolation Forest v1.0"})
 
-@app.route('/detect', methods=['POST'])
+@app.route('/api/detect', methods=['POST'])
 def detect_fraud():
     try:
         data = request.json
@@ -115,6 +115,40 @@ def detect_fraud():
         
     except Exception as e:
         return jsonify({'status': 'error', 'reason': str(e)}), 400
+
+@app.route('/api/predict', methods=['POST'])
+def predict_disease():
+    try:
+        data = request.json
+        symptoms_str = data.get('symptoms', '').lower()
+        
+        # Simple rule-based prediction for prototype
+        disease = "Undiagnosed Condition"
+        precautions = ["Consult a verified doctor immediately.", "Keep track of your symptoms.", "Drink plenty of water and rest."]
+        
+        if 'fever' in symptoms_str and 'cough' in symptoms_str:
+            disease = "Viral Infection / Flu"
+            precautions = ["Rest and drink plenty of fluids", "Take paracetamol for fever", "Isolate if symptoms worsen"]
+        elif 'headache' in symptoms_str and 'nausea' in symptoms_str:
+            disease = "Migraine / Gastric Issue"
+            precautions = ["Rest in a dark, quiet room", "Stay hydrated", "Avoid heavy meals"]
+        elif 'shortness of breath' in symptoms_str:
+            disease = "Respiratory Issue (Urgent)"
+            precautions = ["Seek emergency medical help immediately", "Sit upright", "Use inhaler if prescribed"]
+        elif 'body ache' in symptoms_str and 'fatigue' in symptoms_str:
+            disease = "Viral Fever / Fatigue"
+            precautions = ["Get adequate rest", "Take body ache medication", "Stay hydrated"]
+        elif 'throat' in symptoms_str:
+            disease = "Strep Throat / Tonsillitis"
+            precautions = ["Gargle with warm salt water", "Drink soothing liquids", "Consult doctor for antibiotics if severe"]
+            
+        return jsonify({
+            "disease": disease,
+            "precautions": precautions
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'reason': str(e)}), 400
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
