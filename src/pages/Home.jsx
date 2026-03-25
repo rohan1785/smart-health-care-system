@@ -4,6 +4,7 @@ import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 
 import { db } from '../firebase'
 import Navbar from '../components/Navbar'
 import DiseaseMap from '../components/DiseaseMap'
+import Slideshow from '../components/Slideshow'
 
 import Footer from '../components/Footer'
 
@@ -265,7 +266,7 @@ function Home() {
         </div>
 
         {/* Global Schemes Slideshow */}
-
+        <Slideshow />
 
         {/* Citizen Portal Section merged from Citizen.jsx */}
         <div id="citizen-section" style={{ padding: '40px 20px', maxWidth: '1200px', margin: '0 auto' }}>

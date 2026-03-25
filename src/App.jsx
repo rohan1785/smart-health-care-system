@@ -170,8 +170,8 @@ function getRelatedSuggestions(query) {
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap');
 .shcb *{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',sans-serif;}
-.shcb-btn{position:fixed;bottom:28px;right:28px;width:58px;height:58px;border-radius:50%;background:#2563EB;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 20px rgba(37,99,235,.35);z-index:9999;transition:transform .2s,box-shadow .2s;}
-.shcb-btn:hover{transform:scale(1.07);box-shadow:0 6px 28px rgba(37,99,235,.45);}
+.shcb-btn{position:fixed;bottom:28px;right:28px;width:58px;height:58px;border-radius:50%;background:#ffffff;border:2px solid #000000;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:9999;transition:transform .2s,box-shadow .2s;}
+.shcb-btn:hover{transform:scale(1.07);box-shadow:0 6px 28px rgba(0,0,0,.25);}
 .shcb-btn:active{transform:scale(.96);}
 .shcb-badge{position:absolute;top:-2px;right:-2px;width:18px;height:18px;background:#EF4444;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;}
 .shcb-win{position:fixed;bottom:100px;right:28px;width:380px;height:580px;background:#fff;border:1px solid #E5E7EB;border-radius:20px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.12);z-index:9998;transform-origin:bottom right;animation:shcb-open .2s cubic-bezier(.16,1,.3,1) forwards;}
@@ -239,7 +239,7 @@ function SmartHealthChatbot() {
   const [role, setRole] = useState("citizen");
   const [messages, setMessages] = useState([{
     id: 0, type: "bot",
-    html: `<span class="shcb-cat" style="background:rgba(0,212,255,.12);color:#00d4ff;">General System</span><br/>👋 <b>Welcome to Smart Health Care Assistant!</b><br/><br/>Trained on <b>105 Q&A pairs</b> across 7 categories.<br/>Select your role above and ask me anything!<br/><br/><small style="color:#3a6080">💡 Use chips below for quick questions</small>`
+    html: `👋 <b>Welcome to Smart Health Care!</b><br/><br/>I am your AI Assistant. How can I help you today?`
   }]);
   const [typing, setTyping] = useState(false);
   const [inputVal, setInputVal] = useState("");
@@ -278,13 +278,7 @@ function SmartHealthChatbot() {
 ${sugg.length ? `<div class="shcb-sugg"><div class="shcb-sugg-lbl">💡 Did you mean:</div>${sugg.map(s=>`<button class="shcb-sugg-btn" data-q="${s}">→ ${s}</button>`).join("")}</div>` : ""}
 <br/><small style="color:#3a6080">📧 support@smarthealthcare.in</small>`;
       } else {
-        const c = CAT_COLORS[res.pair.category] || "#00d4ff";
-        const pct = Math.min(100, Math.round(res.score * 2.2));
-        html = `<span class="shcb-cat" style="background:${c}18;color:${c};border:1px solid ${c}30;">${res.pair.category}</span>
-<div class="shcb-mq">🔍 "${res.pair.question}"</div>
-${res.pair.answer}
-<div class="shcb-cbar"><div class="shcb-cfill" style="width:${pct}%"></div></div>
-<div class="shcb-clbl">${pct > 75 ? "🟢 High" : pct > 45 ? "🟡 Medium" : "🟠 Low"} confidence · ${pct}%</div>`;
+        html = `${res.pair.answer}`;
       }
       setMessages(prev => [...prev, { id: Date.now()+1, type: "bot", html }]);
       if (!open) setUnread(u => u + 1);
@@ -298,21 +292,27 @@ ${res.pair.answer}
   return (
     <div className="shcb">
       <button className="shcb-btn" onClick={open ? closeChat : () => { setOpen(true); setClosing(false); setUnread(0); }}>
-        {open ? "✕" : "💬"}
+        {open ? "✕" : (
+          <img
+            src="img/Gemini_Generated_Image_e61tpje61tpje61t-removebg-preview copy.png"
+            alt="Arogya360 Logo"
+            style={{
+              height: '40px',   // Adjusted to fit the 58px button
+              objectFit: 'contain'
+            }}
+          />
+        )}
         {!open && unread > 0 && <div className="shcb-badge">{unread}</div>}
       </button>
       {open && (
         <div className={`shcb-win${closing ? " closing" : ""}`}>
           <div className="shcb-hdr">
             <div className="shcb-logo">🏥</div>
-            <div><div className="shcb-ht">Smart Health Care</div><div className="shcb-hs">AI Assistant · 105 Q&A pairs</div></div>
-            <div className="shcb-online"><div className="shcb-dot"/><span>Online</span></div>
-            <button className="shcb-x" onClick={closeChat}>✕</button>
-          </div>
-          <div className="shcb-chips">
-            {ROLE_SUGGESTIONS[role].map((q,i)=>(
-              <button key={i} className="shcb-chip" onClick={()=>send(q)}>{q}</button>
-            ))}
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>AI Assistant</h3>
+              <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: '0' }}>General guidance & support</p>
+            </div>
+            <button className="shcb-x" onClick={closeChat} style={{marginLeft: 'auto'}}>✕</button>
           </div>
           <div className="shcb-msgs" ref={msgsRef} onClick={handleClick}>
             {messages.map(m=>(
