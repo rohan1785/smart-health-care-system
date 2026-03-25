@@ -1,0 +1,8 @@
+3d3ad89 7th push
+a8e3589 chore: resolve merge conflicts in UI and dashboard
+b0ae787 push 6th
+6269452 Resolve all merge conflicts: merged HEAD and remote changes in conflicted files, ignored node_modules/.vite conflicts
+61f38ab push 5th
+9c13b04 integrated ml model
+3074658 Initial commit - Smart Health System with Firebase integration
+58f49ef first commit

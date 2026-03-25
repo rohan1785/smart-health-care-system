@@ -116,6 +116,7 @@ function Hospital() {
               addDoc(collection(db, "alerts"), {
                 hospitalId: hospitalId,
                 hospitalName: hospitalData.name || "Unknown Hospital",
+                uploaderEmail: hospitalData.email || "Unknown Email",
                 type: mlResult.anomaly_type || "fake_entry",
                 message: mlResult.reason || "Suspicious data detected by ML Model. High variance from average operations.",
                 severity: mlResult.severity || "High",
