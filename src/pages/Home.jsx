@@ -13,6 +13,7 @@ function Home() {
   const [healthAlert, setHealthAlert] = useState('')
   const [alerts, setAlerts] = useState([])
   const [hospitals, setHospitals] = useState([])
+  const [nearbyHospitals, setNearbyHospitals] = useState([])
   const [locationEnabled, setLocationEnabled] = useState(false)
   const [loadingLocation, setLoadingLocation] = useState(false)
 
@@ -21,8 +22,22 @@ function Home() {
   const [feedbackCitizenName, setFeedbackCitizenName] = useState('')
   const [feedbackRating, setFeedbackRating] = useState(0)
   const [feedbackType, setFeedbackType] = useState('Positive Experience')
-  const [feedbackDesc, setFeedbackDesc] = useState('')
-  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
+  // AI Symptom Checker State
+  const [symptoms, setSymptoms] = useState('');
+  const [symptomLoading, setSymptomLoading] = useState(false);
+  const [symptomResult, setSymptomResult] = useState(null);
+  const [symptomError, setSymptomError] = useState('');
+
+  const commonSymptomsList = [
+    "Fever", "Dry Cough", "Headache", "Sore Throat", 
+    "Fatigue", "Nausea", "Body Ache", "Shortness of Breath", 
+    "Loss of Taste/Smell", "Chills"
+  ];
+
+  const handleAddSymptom = (symp) => {
+    if (symptoms.toLowerCase().includes(symp.toLowerCase())) return;
+    setSymptoms(prev => prev ? `${prev}, ${symp}` : symp);
+  };
 
   const handleOpenFeedback = (hospitalName) => {
     setSelectedHospitalForFeedback(hospitalName)
@@ -59,6 +74,40 @@ function Home() {
     }
   }
 
+  const handleCheckSymptoms = async () => {
+    if (!symptoms.trim()) {
+      setSymptomError("Please enter your symptoms before checking.");
+      return;
+    }
+    setSymptomError('');
+    setSymptomLoading(true);
+    setSymptomResult(null);
+
+    try {
+      const response = await fetch('/api/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symptoms })
+      });
+      
+      const data = await response.json();
+      
+      setSymptomResult({
+        disease: data.disease || data.prediction || data.result || "Undiagnosed Condition",
+        precautions: data.precautions || [
+          "Consult a verified doctor immediately.",
+          "Keep track of your symptoms.",
+          "Drink plenty of water and rest."
+        ]
+      });
+    } catch(err) {
+      console.error(err);
+      setSymptomError("Arogya360 AI is currently unavailable (Failed to connect to ML Backend /api/predict). Please ensure the ML backend is running.");
+    } finally {
+      setSymptomLoading(false);
+    }
+  };
+
   const handleRoleSelect = (role) => {
     navigate('/login', { state: { role } })
   }
@@ -82,20 +131,12 @@ function Home() {
         ...doc.data()
       }))
       
-      // Filter municipal and government hospitals if they exist in firestore
+      // Show all hospitals added via Authority dashboard
       if (hospitalsData.length > 0) {
-        const targetHospitals = hospitalsData.filter(h => {
-          if (!h.name) return false;
-          const nameLower = h.name.toLowerCase();
-          return nameLower.includes('municipal') || nameLower.includes('pmc') || nameLower.includes('corporation') || 
-                 nameLower.includes('gov') || nameLower.includes('civil') || nameLower.includes('district') || 
-                 h.isMunicipal || h.isGovernment;
-        });
-        if (targetHospitals.length > 0) {
-          hospitalsData = targetHospitals;
-        }
+        setHospitals(hospitalsData);
+      } else {
+        setHospitals([]);
       }
-      setHospitals(hospitalsData)
     })
 
     return () => {
@@ -118,23 +159,40 @@ function Home() {
     setLoadingLocation(true);
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
           const userLat = position.coords.latitude;
           const userLng = position.coords.longitude;
           
-          const hospitalsWithDistances = hospitals.map(h => {
-             const dist = calculateDistance(userLat, userLng, h.lat, h.lng);
-             return {
-               ...h,
-               rawDistance: dist,
-               distance: dist === 9999 ? 'N/A' : dist.toFixed(1) + ' km'
-             };
-          }).filter(h => h.rawDistance <= 100) // Only show within 100 km
-            .sort((a, b) => a.rawDistance - b.rawDistance);
-          
-          setHospitals(hospitalsWithDistances);
-          setLocationEnabled(true);
-          setLoadingLocation(false);
+          try {
+            // Fetch real-world hospitals using OpenStreetMap Overpass API (radius: 10km)
+            const query = `[out:json];(node["amenity"="hospital"](around:10000, ${userLat}, ${userLng});way["amenity"="hospital"](around:10000, ${userLat}, ${userLng}););out center;`;
+            const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            
+            const realHospitals = data.elements.map(el => {
+              const hLat = el.lat || el.center?.lat;
+              const hLng = el.lon || el.center?.lon;
+              const dist = calculateDistance(userLat, userLng, hLat, hLng);
+              return {
+                 name: el.tags?.name || "Local Health Center",
+                 phone: el.tags?.phone || 'N/A',
+                 rawDistance: dist,
+                 distance: dist === 9999 ? 'Location unknown' : dist.toFixed(1) + ' km'
+              };
+            })
+            // Filter out unnamed generic ones
+            .filter(h => h.name !== "Local Health Center" && h.rawDistance !== 9999)
+            .sort((a, b) => a.rawDistance - b.rawDistance)
+            .slice(0, 15); // Show top 15 closest
+            
+            setNearbyHospitals(realHospitals);
+            setLocationEnabled(true);
+          } catch(error) {
+            console.error("Error fetching external hospital data: ", error);
+            alert("Could not load external hospitals at this time.");
+          } finally {
+            setLoadingLocation(false);
+          }
         },
         (error) => {
           console.error("Error getting location: ", error);
@@ -252,27 +310,180 @@ function Home() {
             </div>
           </div>
 
-          <div className="chart-container" style={{ marginTop: '40px' }}>
-            <h3 className="chart-title">🏥 Nearby Government & Municipal Hospitals</h3>
+          {/* Arogya360 AI Symptom Checker */}
+          <div className="chart-container" style={{ marginTop: '40px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px' }}>
+            <h3 className="chart-title" style={{ margin: '0 0 10px 0', fontSize: '1.5rem', color: '#0f172a' }}>🤖 Arogya360 AI Symptom Checker</h3>
+            <p style={{ color: '#475569', marginBottom: '20px', fontSize: '1.05rem' }}>Enter your symptoms or select common symptoms below to get instant health guidance.</p>
             
-            {!locationEnabled ? (
-              <div style={{ padding: '40px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📍</div>
-                <h4 style={{ fontSize: '1.2rem', color: '#334155', marginBottom: '10px' }}>Find Hospitals Near You</h4>
-                <p style={{ color: '#64748b', marginBottom: '20px' }}>Turn on your location to instantly find nearby Government and Municipal hospitals within 30 km.</p>
+            <div style={{ marginBottom: '15px' }}>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '10px', fontWeight: 'bold' }}>Common Symptoms:</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {commonSymptomsList.map((symp, idx) => (
+                  <span 
+                    key={idx} 
+                    onClick={() => handleAddSymptom(symp)}
+                    style={{ 
+                      padding: '6px 14px', 
+                      background: symptoms.toLowerCase().includes(symp.toLowerCase()) ? '#10b981' : '#e2e8f0', 
+                      color: symptoms.toLowerCase().includes(symp.toLowerCase()) ? 'white' : '#475569', 
+                      borderRadius: '20px', 
+                      fontSize: '0.9rem', 
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      fontWeight: '500',
+                      border: '1px solid transparent'
+                    }}
+                    onMouseEnter={(e) => { if(!symptoms.toLowerCase().includes(symp.toLowerCase())) e.target.style.background = '#cbd5e1' }}
+                    onMouseLeave={(e) => { if(!symptoms.toLowerCase().includes(symp.toLowerCase())) e.target.style.background = '#e2e8f0' }}
+                  >
+                    {symptoms.toLowerCase().includes(symp.toLowerCase()) ? `✓ ${symp}` : `+ ${symp}`}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <textarea 
+              value={symptoms} 
+              onChange={(e) => setSymptoms(e.target.value)}
+              placeholder="E.g., I have a severe headache, mild fever, and dry cough..."
+              style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1', minHeight: '120px', marginBottom: '16px', fontFamily: 'inherit', fontSize: '1rem', resize: 'vertical' }}
+            />
+            
+            <button 
+              onClick={handleCheckSymptoms} 
+              disabled={symptomLoading}
+              className="btn btn-primary"
+              style={{ padding: '14px 28px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: symptomLoading ? 'not-allowed' : 'pointer', opacity: symptomLoading ? 0.7 : 1, transition: 'all 0.3s', fontSize: '1.05rem', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}
+            >
+              {symptomLoading ? '⏳ Analyzing symptoms...' : '🔍 Check Symptoms'}
+            </button>
+
+            {symptomError && (
+              <div style={{ marginTop: '20px', padding: '16px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fca5a5', borderRadius: '12px' }}>
+                <span style={{fontWeight: 'bold'}}>⚠️ Error: </span> {symptomError}
+              </div>
+            )}
+
+            {symptomResult && (
+              <div style={{ marginTop: '30px', padding: '24px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)' }}>
+                <h4 style={{ color: '#0f172a', fontSize: '1.3rem', marginBottom: '15px' }}>
+                  🩺 Possible Condition: <span style={{ color: '#dc2626', fontWeight: '800' }}>{symptomResult.disease}</span>
+                </h4>
+                
+                <h5 style={{ color: '#475569', fontSize: '1.1rem', marginBottom: '12px', fontWeight: '700' }}>📌 Recommended Precautions:</h5>
+                <ul style={{ paddingLeft: '24px', color: '#334155', marginBottom: '30px', lineHeight: '1.8', fontSize: '1.05rem' }}>
+                  {symptomResult.precautions?.map((p, idx) => (
+                    <li key={idx} style={{marginBottom: '6px'}}>{p}</li>
+                  ))}
+                  {(!symptomResult.precautions || symptomResult.precautions.length === 0) && (
+                    <li style={{marginBottom: '6px'}}>Please consult a doctor immediately for proper guidance.</li>
+                  )}
+                </ul>
+
+                <h5 style={{ color: '#475569', fontSize: '1.1rem', marginBottom: '20px', fontWeight: '700' }}>🏥 Recommended Hospitals Nearby:</h5>
+                <div className="hospital-grid">
+                  {hospitals.slice(0, 2).map((hospital, index) => (
+                    <div key={index} className="hospital-card" style={{ borderTop: '4px solid #10b981', position: 'relative' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <h3 style={{ margin: 0, paddingRight: '25px', color: '#1e293b' }}>{hospital.name}</h3>
+                        <div title="Verified Facility" style={{ color: '#10b981', fontSize: '1.1rem', position: 'absolute', right: '20px', top: '20px', background: '#d1fae5', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>✓</div>
+                      </div>
+                      <div className="hospital-info">
+                        <span>Available Beds</span>
+                        <span style={{ color: '#10b981', fontWeight: 'bold' }}>{hospital.availableBeds || hospital.available || 0}</span>
+                      </div>
+                      <div className="hospital-info">
+                        <span>Contact</span>
+                        <span>{hospital.phone || 'N/A'}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                        <button
+                          className="btn btn-primary"
+                          style={{ flex: 1 }}
+                          onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}`, '_blank')}
+                        >
+                          Get Directions
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="chart-container" style={{ marginTop: '40px', background: locationEnabled ? '#f8fafc' : 'white', border: locationEnabled ? '1px solid #e2e8f0' : 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+              <h3 className="chart-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                📍 Nearby Hospitals
+                {locationEnabled && <span style={{ fontSize: '0.8rem', background: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}><span className="shcb-dot" style={{width:'6px', height:'6px', display:'inline-block'}}></span> Using your location</span>}
+              </h3>
+              {!locationEnabled && (
                 <button 
                   onClick={handleGetLocation}
                   disabled={loadingLocation}
-                  style={{ padding: '12px 24px', background: '#2563EB', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: loadingLocation ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: loadingLocation ? 0.7 : 1 }}
+                  style={{ padding: '10px 20px', background: '#2563EB', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: loadingLocation ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: loadingLocation ? 0.7 : 1, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(37, 99, 235, 0.2)' }}
                 >
-                  {loadingLocation ? '📍 Locating...' : '📍 Use My Current Location'}
+                  {loadingLocation ? '⏳ Locating...' : '📍 Find Nearby Hospitals'}
                 </button>
+              )}
+            </div>
+
+            {!locationEnabled ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #cbd5e1' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '15px', color: '#94a3b8' }}>🗺️</div>
+                <h4 style={{ color: '#475569', fontSize: '1.2rem', marginBottom: '8px', fontWeight: '600' }}>Enable location to see nearby hospitals</h4>
+                <p style={{ color: '#64748b', maxWidth: '420px', margin: '0 auto', lineHeight: '1.5' }}>Allow location access to find the fastest route to verified healthcare facilities around you.</p>
               </div>
-            ) : hospitals.length === 0 ? (
+            ) : nearbyHospitals.length === 0 ? (
+              <div style={{ padding: '30px', textAlign: 'center', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fca5a5' }}>
+                <p style={{ color: '#b91c1c', fontWeight: '500' }}>No verified hospitals found near your location.</p>
+              </div>
+            ) : (
+              <div className="hospital-grid">
+                {nearbyHospitals.map((hospital, index) => (
+                  <div key={index} className="hospital-card" style={{ borderTop: '4px solid #64748b', position: 'relative' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                      <h3 style={{ margin: 0, paddingRight: '25px', color: '#1e293b' }}>{hospital.name}</h3>
+                      <div title="External Source" style={{ color: '#64748b', fontSize: '1.1rem', position: 'absolute', right: '20px', top: '20px', background: '#f1f5f9', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>🌐</div>
+                    </div>
+                    <div className="hospital-info">
+                      <span>Distance</span>
+                      <span style={{ fontWeight: 'bold', color: '#2563EB', fontSize: '0.9rem' }}>{hospital.distance}</span>
+                    </div>
+                    <div className="hospital-info">
+                      <span>Verification</span>
+                      <span style={{ color: '#64748b', fontWeight: 'bold' }}>External Map Data</span>
+                    </div>
+                    <div className="hospital-info">
+                      <span>Contact</span>
+                      <span>{hospital.phone || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                      <button
+                        className="btn btn-primary"
+                        style={{ flex: 1 }}
+                        onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}`, '_blank')}
+                      >
+                        Get Directions
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="chart-container" style={{ marginTop: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+              <h3 className="chart-title" style={{ margin: 0 }}>🏛️ Government & Municipal Hospitals</h3>
+            </div>
+            
+            {hospitals.length === 0 ? (
               <div style={{ padding: '30px', textAlign: 'center', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fca5a5' }}>
                 <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚠️</div>
                 <h4 style={{ color: '#991b1b', fontSize: '1.1rem' }}>No Govt. Hospitals Found</h4>
-                <p style={{ color: '#b91c1c' }}>Currently, no government or municipal hospital is available or registered within 100 km of your area..</p>
+                <p style={{ color: '#b91c1c' }}>Currently, no government or municipal hospital is registered in the database.</p>
               </div>
             ) : (
               <div className="hospital-grid">
@@ -281,7 +492,7 @@ function Home() {
                     <h3>{hospital.name}</h3>
                     <div className="hospital-info">
                       <span>Distance</span>
-                      <span style={{ fontWeight: 'bold', color: '#2563EB' }}>{hospital.distance || 'N/A'}</span>
+                      <span style={{ fontWeight: 'bold', color: '#2563EB', fontSize: '0.9rem' }}>{locationEnabled ? hospital.distance : 'N/A (Click Sort)'}</span>
                     </div>
                     <div className="hospital-info">
                       <span>Available Beds</span>

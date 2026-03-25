@@ -112,96 +112,135 @@ export default function Hirkani() {
   return (
     <>
       <Navbar />
-      <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', paddingTop: '80px', fontFamily: 'Inter, sans-serif' }}>
+      <div style={{ backgroundColor: '#f4f7f9', minHeight: '100vh', paddingTop: '70px', fontFamily: '"Inter", "Segoe UI", sans-serif', color: '#334155' }}>
         
         {/* Header Section */}
-        <div style={{ background: 'linear-gradient(to right, #ffe4e6, #fce7f3)', padding: '40px 20px', textAlign: 'center', borderBottom: '1px solid #fbcfe8' }}>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: '800', color: '#be123c', marginBottom: '10px' }}>
-            👶 HIRKANI Care Corner
+        <div style={{ backgroundColor: '#ffffff', padding: '60px 20px 40px', textAlign: 'center', borderBottom: '1px solid #e5e7eb' }}>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: '800', color: '#111827', margin: '0 0 16px 0', letterSpacing: '-0.025em' }}>
+            <span style={{ fontSize: '2.2rem', marginRight: '10px' }}>👶</span> 
+            <span style={{ background: 'linear-gradient(90deg, #e11d48, #f43f5e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>HIRKANI</span> Care Corner
           </h1>
-          <p style={{ fontSize: '1.2rem', color: '#475569', maxWidth: '800px', margin: '0 auto' }}>
+          <p style={{ fontSize: '1.15rem', color: '#6b7280', maxWidth: '700px', margin: '0 auto', lineHeight: '1.6' }}>
             Free Municipal Maternity Awareness Portal. A month-by-month guide to ensure a safe and healthy pregnancy for you and your baby. No login required.
           </p>
         </div>
 
-        <div style={{ maxWidth: '1200px', margin: '40px auto', padding: '0 20px', display: 'flex', gap: '30px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div style={{ maxWidth: '1280px', margin: '40px auto', padding: '0 24px', display: 'flex', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
           
-          {/* Main Content Area (Tabs + Details) */}
-          <div style={{ flex: '1 1 700px', background: 'white', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          {/* Main Content Area */}
+          <div style={{ flex: '1 1 750px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
-            {/* Tabs for 9 Months */}
-            <div style={{ display: 'flex', overflowX: 'auto', background: '#fff1f2', borderBottom: '1px solid #ffe4e6' }}>
-              {pregnancyData.map((data) => (
-                <button
-                  key={data.month}
-                  onClick={() => setActiveMonth(data.month)}
-                  style={{
-                    padding: '16px 24px', whiteSpace: 'nowrap', border: 'none', background: activeMonth === data.month ? '#f43f5e' : 'transparent',
-                    color: activeMonth === data.month ? 'white' : '#881337', fontWeight: '700', fontSize: '1.1rem', cursor: 'pointer', transition: 'all 0.2s',
-                    borderBottom: activeMonth === data.month ? '4px solid #9f1239' : '4px solid transparent'
-                  }}
-                >
-                  Month {data.month}
-                </button>
-              ))}
+            {/* Modern Pill Tabs */}
+            <div style={{ padding: '8px', background: '#ffffff', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03)', border: '1px solid #f3f4f6', overflowX: 'auto' }}>
+              <div style={{ display: 'flex', gap: '8px', minWidth: 'max-content' }}>
+                {pregnancyData.map((data) => (
+                  <button
+                    key={data.month}
+                    onClick={() => setActiveMonth(data.month)}
+                    style={{
+                      padding: '12px 24px', 
+                      borderRadius: '10px',
+                      border: 'none', 
+                      background: activeMonth === data.month ? '#f43f5e' : 'transparent',
+                      color: activeMonth === data.month ? '#ffffff' : '#6b7280', 
+                      fontWeight: '600', 
+                      fontSize: '1rem', 
+                      cursor: 'pointer', 
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: activeMonth === data.month ? '0 4px 6px -1px rgba(244, 63, 94, 0.2)' : 'none'
+                    }}
+                    onMouseOver={(e) => { if(activeMonth !== data.month) e.currentTarget.style.background = '#f3f4f6' }}
+                    onMouseOut={(e) => { if(activeMonth !== data.month) e.currentTarget.style.background = 'transparent' }}
+                  >
+                    Month {data.month}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Content for Selected Month */}
-            <div style={{ padding: '30px' }}>
-              <h2 style={{ fontSize: '2rem', fontWeight: '800', color: '#881337', marginBottom: '20px', borderBottom: '2px solid #fecdd3', paddingBottom: '10px' }}>
+            {/* Selected Month Content Card */}
+            <div style={{ background: '#ffffff', borderRadius: '20px', padding: '40px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', border: '1px solid #f3f4f6' }}>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: '700', color: '#1f2937', margin: '0 0 32px 0', paddingBottom: '16px', borderBottom: '1px solid #f3f4f6' }}>
                 {currentData.title}
               </h2>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
                 
                 {/* DOs Section */}
-                <div style={{ background: '#ecfdf5', padding: '20px', borderRadius: '12px', borderLeft: '4px solid #10b981' }}>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#065f46', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>✅</span> What to Do (काय करावे)
+                <div style={{ background: '#ffffff', padding: '24px', borderRadius: '16px', border: '1px solid #e5e7eb', borderTop: '4px solid #10b981', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', background: '#d1fae5', borderRadius: '8px', fontSize: '1rem' }}>✅</span> 
+                    What to Do (काय करावे)
                   </h3>
-                  <ul style={{ paddingLeft: '20px', color: '#047857', lineHeight: '1.6' }}>
-                    {currentData.todo.map((item, i) => <li key={i} style={{ marginBottom: '8px' }}>{item}</li>)}
+                  <ul style={{ paddingLeft: '0', margin: '0', listStyle: 'none', color: '#4b5563', lineHeight: '1.6' }}>
+                    {currentData.todo.map((item, i) => (
+                      <li key={i} style={{ marginBottom: '12px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                        <span style={{ color: '#10b981', marginTop: '2px' }}>•</span> {item}
+                      </li>
+                    ))}
                   </ul>
                 </div>
 
                 {/* DONTs Section */}
-                <div style={{ background: '#fef2f2', padding: '20px', borderRadius: '12px', borderLeft: '4px solid #ef4444' }}>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#991b1b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>❌</span> What NOT to Do (काय टाळावे)
+                <div style={{ background: '#ffffff', padding: '24px', borderRadius: '16px', border: '1px solid #e5e7eb', borderTop: '4px solid #ef4444', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', background: '#fee2e2', borderRadius: '8px', fontSize: '1rem' }}>❌</span> 
+                    What NOT to Do (काय टाळावे)
                   </h3>
-                  <ul style={{ paddingLeft: '20px', color: '#b91c1c', lineHeight: '1.6' }}>
-                    {currentData.notTodo.map((item, i) => <li key={i} style={{ marginBottom: '8px' }}>{item}</li>)}
+                  <ul style={{ paddingLeft: '0', margin: '0', listStyle: 'none', color: '#4b5563', lineHeight: '1.6' }}>
+                    {currentData.notTodo.map((item, i) => (
+                      <li key={i} style={{ marginBottom: '12px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                        <span style={{ color: '#ef4444', marginTop: '2px' }}>•</span> {item}
+                      </li>
+                    ))}
                   </ul>
                 </div>
 
                 {/* EAT Section */}
-                <div style={{ background: '#fffbeb', padding: '20px', borderRadius: '12px', borderLeft: '4px solid #f59e0b' }}>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#92400e', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>🍲</span> Diet & Food (आहार)
+                <div style={{ background: '#ffffff', padding: '24px', borderRadius: '16px', border: '1px solid #e5e7eb', borderTop: '4px solid #f59e0b', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', background: '#fef3c7', borderRadius: '8px', fontSize: '1rem' }}>🍲</span> 
+                    Diet & Food (आहार)
                   </h3>
-                  <ul style={{ paddingLeft: '20px', color: '#b45309', lineHeight: '1.6' }}>
-                    {currentData.eat.map((item, i) => <li key={i} style={{ marginBottom: '8px' }}>{item}</li>)}
+                  <ul style={{ paddingLeft: '0', margin: '0', listStyle: 'none', color: '#4b5563', lineHeight: '1.6' }}>
+                    {currentData.eat.map((item, i) => (
+                      <li key={i} style={{ marginBottom: '12px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                        <span style={{ color: '#f59e0b', marginTop: '2px' }}>•</span> {item}
+                      </li>
+                    ))}
                   </ul>
                 </div>
 
                 {/* EXERCISE Section */}
-                <div style={{ background: '#eff6ff', padding: '20px', borderRadius: '12px', borderLeft: '4px solid #3b82f6' }}>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#1e40af', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>🧘‍♀️</span> Safe Exercise (व्यायाम)
+                <div style={{ background: '#ffffff', padding: '24px', borderRadius: '16px', border: '1px solid #e5e7eb', borderTop: '4px solid #3b82f6', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', background: '#dbeafe', borderRadius: '8px', fontSize: '1rem' }}>🧘‍♀️</span> 
+                    Safe Exercise (व्यायाम)
                   </h3>
-                  <ul style={{ paddingLeft: '20px', color: '#1d4ed8', lineHeight: '1.6' }}>
-                    {currentData.exercise.map((item, i) => <li key={i} style={{ marginBottom: '8px' }}>{item}</li>)}
+                  <ul style={{ paddingLeft: '0', margin: '0', listStyle: 'none', color: '#4b5563', lineHeight: '1.6' }}>
+                    {currentData.exercise.map((item, i) => (
+                      <li key={i} style={{ marginBottom: '12px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                        <span style={{ color: '#3b82f6', marginTop: '2px' }}>•</span> {item}
+                      </li>
+                    ))}
                   </ul>
                 </div>
 
-                {/* WARNING Section */}
-                <div style={{ background: '#fef2f2', padding: '20px', borderRadius: '12px', borderLeft: '4px solid #dc2626', gridColumn: '1 / -1' }}>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#991b1b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>⚠️</span> Danger Signs / Consult Doctor Immediately (धोक्याची चिन्हे)
+                {/* WARNING Section - Full Width */}
+                <div style={{ background: '#fff1f2', padding: '24px', borderRadius: '16px', border: '1px solid #ffe4e6', gridColumn: '1 / -1' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#be123c', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', background: '#ffe4e6', borderRadius: '8px', fontSize: '1rem' }}>⚠️</span> 
+                    Danger Signs / Consult Doctor Immediately (धोक्याची चिन्हे)
                   </h3>
-                  <ul style={{ paddingLeft: '20px', color: '#b91c1c', lineHeight: '1.6' }}>
-                    {currentData.warning.map((item, i) => <li key={i} style={{ marginBottom: '8px' }}>{item}</li>)}
-                  </ul>
+                  <div style={{ paddingLeft: '42px' }}>
+                    <ul style={{ paddingLeft: '0', margin: '0', listStyle: 'none', color: '#9f1239', lineHeight: '1.6', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+                      {currentData.warning.map((item, i) => (
+                        <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                          <span style={{ color: '#e11d48', marginTop: '2px' }}>•</span> {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
 
               </div>
@@ -209,72 +248,91 @@ export default function Hirkani() {
           </div>
 
           {/* Right Sidebar Area (AI Assistant & SOS) */}
-          <div style={{ flex: '1 1 350px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ flex: '1 1 380px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
             {/* AI Assistant Widget */}
-            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #fbcfe8', boxShadow: '0 10px 25px rgba(225, 91, 100, 0.1)', overflow: 'hidden' }}>
-              <div style={{ padding: '20px', background: '#ffe4e6', borderBottom: '1px solid #fbcfe8' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#e11d48', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                  <span style={{ fontSize: '1.5rem' }}>✨</span> AI Pregnancy Assistant
-                </h3>
-                <p style={{ fontSize: '0.9rem', color: '#be123c', marginTop: '5px', margin: '5px 0 0 0' }}>
-                  Have a general question about pregnancy? Ask our free AI guide.
-                </p>
+            <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', height: '500px' }}>
+              
+              {/* Chat Header */}
+              <div style={{ padding: '24px', background: '#ffffff', borderBottom: '1px solid #f3f4f6', borderRadius: '20px 20px 0 0', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, #f43f5e, #e11d48)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontSize: '1.5rem', boxShadow: '0 4px 6px rgba(225, 29, 72, 0.2)' }}>
+                  ✨
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>AI Pregnancy Assistant</h3>
+                  <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: '0' }}>General guidance & support</p>
+                </div>
               </div>
               
-              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', height: '350px' }}>
-                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '10px', marginBottom: '15px' }}>
-                  {chatHistory.map((msg, i) => (
-                    <div key={i} style={{ 
-                      alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', 
-                      background: msg.role === 'user' ? '#f43f5e' : '#f1f5f9', 
-                      color: msg.role === 'user' ? 'white' : '#334155',
-                      padding: '10px 14px', borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', 
-                      fontSize: '0.95rem', maxWidth: '85%', lineHeight: '1.5'
-                    }}>
-                      {msg.text}
-                    </div>
-                  ))}
-                  <div ref={chatEndRef} />
-                </div>
-                
-                <div style={{ display: 'flex', gap: '10px' }}>
+              {/* Chat Body */}
+              <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', background: '#f8fafc' }}>
+                {chatHistory.map((msg, i) => (
+                  <div key={i} style={{ 
+                    alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', 
+                    background: msg.role === 'user' ? '#f43f5e' : '#ffffff', 
+                    color: msg.role === 'user' ? '#ffffff' : '#334155',
+                    padding: '12px 16px', 
+                    borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', 
+                    fontSize: '0.95rem', 
+                    maxWidth: '85%', 
+                    lineHeight: '1.5',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    border: msg.role === 'user' ? 'none' : '1px solid #e2e8f0'
+                  }}>
+                    {msg.text}
+                  </div>
+                ))}
+                <div ref={chatEndRef} />
+              </div>
+              
+              {/* Chat Input */}
+              <div style={{ padding: '20px', background: '#ffffff', borderTop: '1px solid #f3f4f6', borderRadius: '0 0 20px 20px' }}>
+                <div style={{ display: 'flex', gap: '12px', background: '#f8fafc', padding: '6px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                   <input 
                     type="text" 
                     value={chatMsg} 
                     onChange={e => setChatMsg(e.target.value)} 
                     onKeyDown={e => e.key === 'Enter' && handleSendChat()} 
                     placeholder="Type your question..." 
-                    style={{ flex: 1, padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '1rem', outline: 'none' }} 
+                    style={{ flex: 1, padding: '10px 14px', background: 'transparent', border: 'none', fontSize: '0.95rem', outline: 'none', color: '#1f2937' }} 
                   />
                   <button 
                     onClick={handleSendChat} 
-                    style={{ background: '#f43f5e', color: 'white', border: 'none', borderRadius: '8px', padding: '0 16px', cursor: 'pointer', fontSize: '1.2rem' }}
+                    style={{ background: '#f43f5e', color: 'white', border: 'none', borderRadius: '8px', width: '44px', height: '44px', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', transition: 'background 0.2s' }}
+                    onMouseOver={e => e.currentTarget.style.background = '#e11d48'}
+                    onMouseOut={e => e.currentTarget.style.background = '#f43f5e'}
                   >
-                    ➔
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                   </button>
                 </div>
               </div>
             </div>
 
             {/* Emergency SOS */}
-            <div style={{ background: '#fef2f2', padding: '20px', borderRadius: '16px', border: '1px solid #fecdd3' }}>
-              <h4 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 10px 0' }}>
-                <span>🚨</span> Urgent SOS Help
-              </h4>
-              <p style={{ fontSize: '0.95rem', color: '#b91c1c', marginBottom: '15px', lineHeight: '1.5' }}>
+            <div style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', padding: '32px 24px', borderRadius: '20px', color: 'white', boxShadow: '0 10px 15px -3px rgba(220, 38, 38, 0.3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.2)', borderRadius: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.25rem' }}>
+                  🚨
+                </div>
+                <h4 style={{ fontSize: '1.25rem', fontWeight: '700', margin: '0' }}>
+                  Urgent SOS Help
+                </h4>
+              </div>
+              <p style={{ fontSize: '0.95rem', color: '#fee2e2', marginBottom: '24px', lineHeight: '1.6' }}>
                 In case of extreme pain, water breaking, or heavy bleeding, call for immediate help.
               </p>
               <button 
                 onClick={() => alert("🚨 AMBULANCE REQUESTED!\n\nYour location is being tracked. Help from the nearest municipal hospital is on the way.")} 
                 style={{
-                  width: '100%', padding: '14px 0', background: '#dc2626', color: 'white', border: 'none', borderRadius: '8px', 
-                  fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', transition: 'background 0.2s', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px'
+                  width: '100%', padding: '16px 0', background: '#ffffff', color: '#dc2626', border: 'none', borderRadius: '12px', 
+                  fontWeight: '700', fontSize: '1.05rem', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                 }}
-                onMouseOver={e => e.currentTarget.style.background = '#b91c1c'}
-                onMouseOut={e => e.currentTarget.style.background = '#dc2626'}
+                onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)' }}
+                onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)' }}
               >
-                <span>📞</span> CALL EMERGENCY (108)
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                CALL EMERGENCY (108)
               </button>
             </div>
 
