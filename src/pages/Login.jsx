@@ -149,7 +149,7 @@ function Login() {
             }}
           >
             <img
-              src="img\Gemini_Generated_Image_e61tpje61tpje61t-removebg-preview copy.png"
+              src="/img\Gemini_Generated_Image_e61tpje61tpje61t-removebg-preview copy.png"
               alt="Arogya360 Logo"
               style={{
                 height: "150px", // adjust size as needed
