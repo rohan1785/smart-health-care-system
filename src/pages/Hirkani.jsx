@@ -97,14 +97,55 @@ export default function Hirkani() {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory]);
 
+  const generateResponse = (message) => {
+    const msg = message.toLowerCase();
+    
+    if (msg.includes('bleed') || msg.includes('rakta') || msg.includes('spotting')) {
+      return "⚠️ This could be a danger sign. Please visit your nearest hospital or municipal clinic immediately.";
+    }
+    if (msg.includes('pain') || msg.includes('dukht') || msg.includes('potat') || msg.includes('cramp') || msg.includes('trass')) {
+      return "Mild pain or stretching is common, but severe pain means you need to consult a doctor. Try resting and lying on your left side.";
+    }
+    if (msg.includes('vomit') || msg.includes('ulti') || msg.includes('nausea') || msg.includes('malamal') || msg.includes('chakkr')) {
+      return "Morning sickness is very common. Eat small, frequent meals and stay hydrated. Drink ginger tea. If you can't keep food down and vomit continuously, see a doctor.";
+    }
+    if (msg.includes('food') || msg.includes('diet') || msg.includes('eat') || msg.includes('khau') || msg.includes('jevan') || msg.includes('aahar')) {
+      return "Eat a balanced diet! Include green leafy vegetables, lentils (dal), milk, eggs, and completely cooked food. Avoid raw papaya, raw meat, and outside junk food.";
+    }
+    if (msg.includes('water') || msg.includes('pani') || msg.includes('tahan')) {
+      return "Please drink at least 8-10 glasses of clean, filtered water every day. This helps maintain fluid levels around the baby and prevents infections.";
+    }
+    if (msg.includes('movement') || msg.includes('halchal') || msg.includes('kick')) {
+      return "Baby movements usually start around month 4 or 5. By month 7, you should track movements daily. If you notice a drastic decrease in baby kicks, contact your clinic.";
+    }
+    if (msg.includes('travel') || msg.includes('pravas') || msg.includes('gaavi')) {
+      return "Short travel is okay. Attempt to avoid long, bumpy rides. If you travel, take frequent breaks to stretch your legs. Always carry your medical file with you.";
+    }
+    if (msg.includes('sleep') || msg.includes('jhop')) {
+      return "Aim for 8 hours of sleep at night and 2 hours of rest in the afternoon. Sleeping on your left side is highly recommended as it improves blood flow to the baby.";
+    }
+    if (msg.includes('medicine') || msg.includes('goli') || msg.includes('aushadh') || msg.includes('iron') || msg.includes('calcium')) {
+      return "Take your prescribed Folic Acid, Iron, and Calcium supplements regularly. Do NOT take any unprescribed medicine or painkillers on your own.";
+    }
+    if (msg.includes('fever') || msg.includes('taap') || msg.includes('garam') || msg.includes('sardi')) {
+      return "Do not self-medicate for a fever during pregnancy. Please consult a doctor immediately for safe treatment.";
+    }
+    
+    return "Thank you! For more details, please read the month-by-month guide above. If you have a specific medical concern, please consult a doctor or your ASHA worker.";
+  };
+
   const handleSendChat = () => {
     if (!chatMsg.trim()) return;
-    const newHistory = [...chatHistory, { role: 'user', text: chatMsg }];
+    const currentMsg = chatMsg;
+    const newHistory = [...chatHistory, { role: 'user', text: currentMsg }];
     setChatHistory(newHistory);
     setChatMsg('');
+    
+    // Simulate thinking delay
     setTimeout(() => {
-      setChatHistory(prev => [...prev, { role: 'bot', text: 'This is a general advice AI. Please always consult your nearest municipal doctor or ASHA worker for any medical concerns or pain.' }]);
-    }, 1000);
+      const botResponse = generateResponse(currentMsg);
+      setChatHistory(prev => [...prev, { role: 'bot', text: botResponse }]);
+    }, 800);
   };
 
   const currentData = pregnancyData.find(d => d.month === activeMonth);
