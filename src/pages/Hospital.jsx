@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db } from '../firebase'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 
 function Hospital() {
   const [hospitalData, setHospitalData] = useState(null)
@@ -11,8 +11,6 @@ function Hospital() {
   const [editTotalBeds, setEditTotalBeds] = useState(0)
   const [editAvailableBeds, setEditAvailableBeds] = useState(0)
   
-  const [dengueCases, setDengueCases] = useState(0)
-  const [fluCases, setFluCases] = useState(0)
   const [customDiseases, setCustomDiseases] = useState([])
 
   const [sections, setSections] = useState([])
@@ -32,9 +30,16 @@ function Hospital() {
             setHospitalData({ id: docSnap.id, ...data });
             setEditTotalBeds(data.totalBeds || 0);
             setEditAvailableBeds(data.availableBeds || 0);
-            setDengueCases(data.dengueCases || 0);
-            setFluCases(data.fluCases || 0);
-            setCustomDiseases(data.customDiseases || []);
+            
+            let loadedDiseases = data.customDiseases || [];
+            if (data.dengueCases > 0 && !loadedDiseases.some(d => d.name.toLowerCase() === 'dengue')) {
+              loadedDiseases.push({ name: 'Dengue', cases: data.dengueCases });
+            }
+            if (data.fluCases > 0 && !loadedDiseases.some(d => d.name.toLowerCase() === 'flu')) {
+              loadedDiseases.push({ name: 'Flu', cases: data.fluCases });
+            }
+            
+            setCustomDiseases(loadedDiseases);
             setSections(data.sections || []);
           }
         } 
@@ -83,54 +88,73 @@ function Hospital() {
     try {
       const currentBeds = parseInt(editTotalBeds) || 0;
       const currentAvailable = parseInt(editAvailableBeds) || 0;
-      const dengueCasesVal = parseInt(dengueCases) || 0;
-      const fluCasesVal = parseInt(fluCases) || 0;
       const cleanedDiseases = customDiseases.filter(d => d.name.trim() !== '');
 
-      // 1. Validation via Python ML API
+      const totalCases = cleanedDiseases.reduce((acc, curr) => acc + (parseInt(curr.cases) || 0), 0);
+      const prevTotalCases = hospitalData.customDiseases 
+         ? hospitalData.customDiseases.reduce((acc, curr) => acc + (parseInt(curr.cases) || 0), 0)
+         : (hospitalData.dengueCases || 0) + (hospitalData.fluCases || 0);
+
+      // 1. Validation Logic Natively in React 
       let mlStatus = "Normal";
       let mlTrustScore = 100;
       let mlAnalysisDetail = null;
 
       try {
-        const mlResponse = await fetch('/api/detect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            hospital_id: hospitalId,
-            current_beds: currentBeds,
-            previous_beds: hospitalData.totalBeds || currentBeds,
-            average_beds: hospitalData.totalBeds || currentBeds
-          })
-        });
+        const prev_beds = parseInt(hospitalData.totalBeds || currentBeds);
+        const avg_beds = parseInt(hospitalData.totalBeds || currentBeds);
+        const bed_change = currentBeds - prev_beds;
+        
+        const rules = [];
+        let severity = 'Low';
 
-        if (mlResponse.ok) {
-          const mlResult = await mlResponse.json();
-          mlStatus = mlResult.status || "Normal";
-          mlTrustScore = mlResult.confidence_score !== undefined ? mlResult.confidence_score : 100;
-          mlAnalysisDetail = mlResult;
+        // Bed rules
+        if (currentBeds > avg_beds * 2 && currentBeds > 10) {
+          rules.push(`Bed increase ${prev_beds} to ${currentBeds}`);
+          severity = 'High';
+        } else if (Math.abs(bed_change) > avg_beds * 0.5 && Math.abs(bed_change) > 10) {
+          rules.push(`Bed update ${prev_beds} to ${currentBeds}`);
+          severity = 'Medium';
+        }
 
-          // 2. Alert the Authority Dashboard if Data is Suspicious
-          if (mlStatus === "Suspicious" || mlResult.anomaly_type) {
-            import('firebase/firestore').then(({ addDoc, collection, serverTimestamp }) => {
-              addDoc(collection(db, "alerts"), {
-                hospitalId: hospitalId,
-                hospitalName: hospitalData.name || "Unknown Hospital",
-                uploaderEmail: hospitalData.email || "Unknown Email",
-                type: mlResult.anomaly_type || "fake_entry",
-                message: mlResult.reason || "Suspicious data detected by ML Model. High variance from average operations.",
-                severity: mlResult.severity || "High",
-                timestamp: serverTimestamp(),
-                dataSnapshot: {
-                  current_beds: currentBeds,
-                  previous_beds: hospitalData.totalBeds || currentBeds
-                }
-              }).catch(err => console.error("Failed to write ML alert:", err));
-            });
-          }
+        // Disease outbreak rules
+        const cases_change = totalCases - prevTotalCases;
+        if (cases_change > 50 && totalCases > prevTotalCases * 1.5) {
+          rules.push(`Disease cases increase ${prevTotalCases} to ${totalCases}`);
+          severity = 'High';
+        } else if (cases_change > 20) {
+          rules.push(`Disease cases update ${prevTotalCases} to ${totalCases}`);
+          severity = 'Medium';
+        }
+
+        if (rules.length > 0) {
+          mlStatus = "Suspicious";
+          mlTrustScore = cases_change > 50 ? 60 : 85;
+          const anomaly_type = rules[0].split(' ')[0];
+          mlAnalysisDetail = {
+            anomaly_type: anomaly_type,
+            reason: rules.join('; '),
+            severity: severity,
+            features_used: { bed_change: bed_change, cases_change: cases_change }
+          };
+
+          // 2. Alert the Authority Dashboard immediately
+          addDoc(collection(db, "alerts"), {
+            hospitalId: hospitalId,
+            hospitalName: hospitalData.name || "Unknown Hospital",
+            uploaderEmail: hospitalData.email || "Unknown Email",
+            type: anomaly_type,
+            message: rules.join('; '),
+            severity: severity,
+            timestamp: serverTimestamp(),
+            dataSnapshot: {
+              current_beds: currentBeds,
+              current_cases: totalCases
+            }
+          }).catch(err => console.error("Failed to write ML alert:", err));
         }
       } catch (mlErr) {
-        console.error("ML Validation skipped or failed:", mlErr);
+        console.error("Native Validation failed:", mlErr);
       }
 
       // 3. Finalize Update to Firestore
@@ -138,8 +162,8 @@ function Hospital() {
       await updateDoc(docRef, {
         totalBeds: currentBeds,
         availableBeds: currentAvailable,
-        dengueCases: dengueCasesVal,
-        fluCases: fluCasesVal,
+        dengueCases: 0, // Zeroed out for legacy migration
+        fluCases: 0,    // Zeroed out for legacy migration
         sections: sections,
         customDiseases: cleanedDiseases,
         
@@ -157,8 +181,6 @@ function Hospital() {
         ...hospitalData,
         totalBeds: currentBeds,
         availableBeds: currentAvailable,
-        dengueCases: dengueCasesVal,
-        fluCases: fluCasesVal,
         sections: sections,
         customDiseases: cleanedDiseases,
         fraudStatus: mlStatus,
@@ -221,8 +243,6 @@ function Hospital() {
                     // Reset to original data
                     setEditTotalBeds(hospitalData.totalBeds);
                     setEditAvailableBeds(hospitalData.availableBeds);
-                    setDengueCases(hospitalData.dengueCases);
-                    setFluCases(hospitalData.fluCases);
                     setCustomDiseases(hospitalData.customDiseases || []);
                     setSections(hospitalData.sections || []);
                   }} 
@@ -274,39 +294,22 @@ function Hospital() {
                 )}
               </h3>
               
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#475569', fontWeight: '600' }}>Dengue Admissions</label>
-                {isEditing ? (
-                  <input type="number" min="0" value={dengueCases} onChange={(e) => handleNumChange(e, setDengueCases)} style={{ padding: '12px', width: '100%', borderRadius: '8px', border: '2px solid #fca5a5', fontSize: '1.05rem', backgroundColor: '#fef2f2', color: '#991b1b' }} />
-                ) : (
-                  <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#ef4444' }}>{dengueCases} Cases</div>
-                )}
-              </div>
-
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#475569', fontWeight: '600' }}>Flu Admissions</label>
-                {isEditing ? (
-                  <input type="number" min="0" value={fluCases} onChange={(e) => handleNumChange(e, setFluCases)} style={{ padding: '12px', width: '100%', borderRadius: '8px', border: '2px solid #7dd3fc', fontSize: '1.05rem', backgroundColor: '#f0f9ff', color: '#0369a1' }} />
-                ) : (
-                  <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#0ea5e9' }}>{fluCases} Cases</div>
-                )}
-              </div>
-
-              {customDiseases.length > 0 && (
-                <div style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '10px', color: '#475569', fontWeight: '600' }}>Other Diseases</label>
+              {customDiseases.length === 0 && !isEditing ? (
+                 <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>No active diseases tracked.</p>
+              ) : (
+                <div style={{ display: 'grid', gap: '10px' }}>
                   {customDiseases.map((d, index) => (
-                    <div key={index} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
+                    <div key={index} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                       {isEditing ? (
                         <>
-                          <input type="text" placeholder="Disease Name" value={d.name} onChange={(e) => handleCustomDiseaseChange(index, 'name', e.target.value)} style={{ padding: '10px', flex: '1', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                          <input type="text" placeholder="Disease Name (e.g. Dengue, Flu, Corona)" value={d.name} onChange={(e) => handleCustomDiseaseChange(index, 'name', e.target.value)} style={{ padding: '10px', flex: '1', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                           <input type="number" min="0" value={d.cases} onChange={(e) => handleCustomDiseaseChange(index, 'cases', e.target.value)} style={{ padding: '10px', width: '80px', borderRadius: '6px', border: '1px solid #cbd5e1' }} title="Cases" />
                           <button onClick={() => handleRemoveDisease(index)} style={{ background: '#fef2f2', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Remove">×</button>
                         </>
                       ) : (
                         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', background: 'white', padding: '10px 15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                          <span style={{ fontWeight: '500', color: '#334155' }}>{d.name || 'Unnamed Disease'}</span>
-                          <span style={{ fontWeight: 'bold', color: '#f59e0b' }}>{d.cases} Cases</span>
+                          <span style={{ fontWeight: '600', color: '#334155' }}>{d.name || 'Unnamed Disease'}</span>
+                          <span style={{ fontWeight: 'bold', color: '#ef4444' }}>{d.cases} Cases</span>
                         </div>
                       )}
                     </div>

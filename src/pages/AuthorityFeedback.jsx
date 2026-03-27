@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore'
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 
 export default function AuthorityFeedback() {
@@ -27,6 +27,18 @@ export default function AuthorityFeedback() {
     } catch(err) {
       console.error(err);
       alert("Failed to update status");
+    }
+  }
+
+  const deleteFeedback = async (id) => {
+    if (window.confirm("Are you sure you want to remove this feedback?")) {
+      try {
+        await deleteDoc(doc(db, 'hospitalFeedback', id));
+        alert("Feedback removed successfully.");
+      } catch (err) {
+        console.error("Error removing feedback:", err);
+        alert("Failed to remove feedback");
+      }
     }
   }
 
@@ -100,23 +112,37 @@ export default function AuthorityFeedback() {
               "{fb.description}"
             </p>
 
-            <div style={{ display: 'flex', gap: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
               {fb.status !== 'verified' && fb.status !== 'resolved' && (
                 <button 
                   onClick={() => updateStatus(fb.id, 'verified')}
-                  style={{ flex: 1, padding: '8px', backgroundColor: 'white', border: '1px solid #f59e0b', color: '#f59e0b', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                  style={{ padding: '6px 14px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', color: '#d97706', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' }}
                 >
-                  Mark Verified
+                  ✓ Verify
                 </button>
               )}
               {fb.status !== 'resolved' && (
                 <button 
                   onClick={() => updateStatus(fb.id, 'resolved')}
-                  style={{ flex: 1, padding: '8px', backgroundColor: '#10b981', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                  style={{ padding: '6px 14px', backgroundColor: '#10b981', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                 >
-                  Mark Resolved
+                  ✓ Resolve
                 </button>
               )}
+              {fb.status !== 'pending' && (!fb.status || fb.status !== 'pending') && (
+                <button 
+                  onClick={() => updateStatus(fb.id, 'pending')}
+                  style={{ padding: '6px 14px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' }}
+                >
+                  ↻ Undo
+                </button>
+              )}
+              <button 
+                onClick={() => deleteFeedback(fb.id)}
+                style={{ padding: '6px 14px', backgroundColor: '#fff1f2', border: '1px solid #ffe4e6', color: '#e11d48', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600', marginLeft: 'auto' }}
+              >
+                Delete
+              </button>
             </div>
             
             <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '15px', textAlign: 'right' }}>

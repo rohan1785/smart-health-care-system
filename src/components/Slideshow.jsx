@@ -14,7 +14,6 @@ const SLIDES = [
     image:
       "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800&fit=crop",
     gradient: "from-sky-50 via-white to-blue-50",
-    icon: "🏥",
   },
   {
     id: 1,
@@ -27,7 +26,6 @@ const SLIDES = [
     image:
       "https://images.unsplash.com/photo-1575321755462-9d58baca58c3?w=800&fit=crop",
     gradient: "from-rose-50 via-white to-pink-50",
-    icon: "🤰",
   },
   {
     id: 2,
@@ -40,7 +38,6 @@ const SLIDES = [
     image:
       "https://images.unsplash.com/photo-1582213782170-e120ce5e6228?w=800&fit=crop",
     gradient: "from-indigo-50 via-white to-violet-50",
-    icon: "♿",
   },
   {
     id: 3,
@@ -53,7 +50,6 @@ const SLIDES = [
     image:
       "https://images.unsplash.com/photo-1589006664254-d5cf6dd20b44?w=800&fit=crop",
     gradient: "from-teal-50 via-white to-emerald-50",
-    icon: "💉",
   },
 ];
 

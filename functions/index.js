@@ -7,7 +7,9 @@ const axios = require('axios');
 admin.initializeApp();
 
 // ML API endpoint (local dev) - deploy with env vars for prod
-const ML_API_URL = process.env.ML_API_URL || 'http://localhost:5000/detect';
+const ML_API_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/apidetect` 
+  : 'http://localhost:5000/apidetect';
 
 exports.detectFraud = onDocumentUpdated({
   document: 'hospitals/{hospitalId}'

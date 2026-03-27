@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, onSnapshot, query, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import Navbar from '../components/Navbar'
 import DiseaseMap from '../components/DiseaseMap'
@@ -126,8 +126,22 @@ function Home() {
   }
 
   useEffect(() => {
-    const alert = localStorage.getItem('healthAlert') || ''
-    setHealthAlert(alert)
+    const qAlertsGlobal = query(collection(db, 'sentAlerts'), orderBy('timestamp', 'desc'), limit(1));
+    const unsubscribeGlobalAlert = onSnapshot(qAlertsGlobal, (snapshot) => {
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        const data = doc.data();
+        const msg = `Alert for ${data.hospitalName}: ${data.message}`;
+        if (localStorage.getItem('dismissedAlertId') !== doc.id) {
+          setHealthAlert(msg);
+          localStorage.setItem('currentAlertId', doc.id);
+        } else {
+          setHealthAlert('');
+        }
+      } else {
+        setHealthAlert('');
+      }
+    });
 
     const q = query(collection(db, 'alerts'), orderBy('date', 'desc'))
     const unsubscribeAlerts = onSnapshot(q, (snapshot) => {
@@ -155,6 +169,7 @@ function Home() {
     return () => {
       unsubscribeAlerts()
       unsubscribeHospitals()
+      unsubscribeGlobalAlert()
     }
   }, [])
 
@@ -273,12 +288,19 @@ function Home() {
         <div id="citizen-section" style={{ padding: '40px 20px', maxWidth: '1200px', margin: '0 auto' }}>
 
           {healthAlert && (
-            <div className="alert-banner danger" style={{ marginBottom: '15px' }}>
+            <div className="alert-banner danger" style={{ marginBottom: '15px', position: 'relative' }}>
               <div className="alert-icon">🚨</div>
               <div className="alert-content">
-                <h4>Health Alert</h4>
+                <h4>Health Alert Active</h4>
                 <p>{healthAlert}</p>
               </div>
+              <button 
+                onClick={() => { localStorage.setItem('dismissedAlertId', localStorage.getItem('currentAlertId')); setHealthAlert(''); }}
+                style={{ position: 'absolute', top: '10px', right: '15px', background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#991b1b' }}
+                title="Dismiss active alert"
+              >
+                ✖
+              </button>
             </div>
           )}
 

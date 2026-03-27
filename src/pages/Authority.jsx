@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, query, where, orderBy, onSnapshot, updateDoc, addDoc, serverTimestamp, limit, doc } from "firebase/firestore"
+import { collection, getDocs, query, where, orderBy, onSnapshot, updateDoc, addDoc, serverTimestamp, limit, doc, deleteDoc } from "firebase/firestore"
 import { db } from "../firebase"
 import { useNavigate } from 'react-router-dom'
 import { Line, Bar } from 'react-chartjs-2'
@@ -42,6 +42,8 @@ function Authority() {
   
   const [selectedHospitalForAlert, setSelectedHospitalForAlert] = useState('')
   const [alertMessageText, setAlertMessageText] = useState('')
+  const [alertsSent, setAlertsSent] = useState(0)
+  const [alertHistory, setAlertHistory] = useState([]) // New State
   
   const [name, setName] = useState('')
   const [beds, setBeds] = useState('')
@@ -51,7 +53,6 @@ function Authority() {
   const [totalBeds, setTotalBeds] = useState(0)
   const [availableBedsCount, setAvailableBedsCount] = useState(0)
   const [totalActiveCases, setTotalActiveCases] = useState(0)
-  const [alertsSent, setAlertsSent] = useState(0)
 
   const addHospital = async () => {
     if (!name || !beds || !available) return
@@ -93,9 +94,49 @@ function Authority() {
     }
   }
 
+  const deleteHospital = async (id) => {
+    if (window.confirm("Are you sure you want to permanently delete this hospital?")) {
+      try {
+        await deleteDoc(doc(db, "hospitals", id))
+      } catch (err) {
+        console.error("Error deleting hospital:", err)
+      }
+    }
+  }
+
+  const editHospitalName = async (id, currentName) => {
+    const newName = window.prompt("Enter new hospital name:", currentName);
+    if (newName && newName.trim() !== "" && newName !== currentName) {
+      try {
+        await updateDoc(doc(db, "hospitals", id), {
+          name: newName.trim()
+        });
+        alert("Hospital name updated successfully!");
+      } catch (err) {
+        console.error("Error updating hospital name:", err);
+        alert("Failed to update hospital name.");
+      }
+    }
+  };
+
   useEffect(() => {
-    const alert = localStorage.getItem('healthAlert') || ''
-    setAlertMessage(alert)
+    const qAlertsGlobal = query(collection(db, 'sentAlerts'), orderBy('timestamp', 'desc'), limit(1));
+    const unsubscribeGlobalAlert = onSnapshot(qAlertsGlobal, (snapshot) => {
+      if (!snapshot.empty) {
+        const docSnap = snapshot.docs[0];
+        const data = docSnap.data();
+        const msg = `Alert for ${data.hospitalName}: ${data.message}`;
+        if (localStorage.getItem('dismissedAlertId') !== docSnap.id) {
+          setAlertMessage(msg);
+          localStorage.setItem('currentAlertId', docSnap.id);
+        } else {
+          setAlertMessage('');
+        }
+      } else {
+        setAlertMessage('');
+      }
+    });
+    return () => unsubscribeGlobalAlert();
   }, [])
 
   // Fraud Alerts Realtime (filter fraud-related)
@@ -110,7 +151,9 @@ function Authority() {
         .map(doc => ({
           id: doc.id,
           ...doc.data(),
-          timestamp: doc.data().timestamp?.toDate() || new Date()
+          timestamp: doc.data().timestamp?.toDate
+            ? doc.data().timestamp.toDate() 
+            : new Date(doc.data().timestamp || Date.now())
         }))
         .filter(a => a.type === 'fake_entry' || a.severity === 'High' || a.status === 'Pending' || (a.message && (a.message.toLowerCase().includes('fraud') || a.message.toLowerCase().includes('suspicious'))) || (a.reason && (a.reason.toLowerCase().includes('fraud') || a.reason.toLowerCase().includes('suspicious'))))
       setFraudAlerts(alerts)
@@ -118,19 +161,29 @@ function Authority() {
     return unsubscribe
   }, [])
 
+  // Sent Alerts History
+  useEffect(() => {
+    const q = query(collection(db, 'sentAlerts'), orderBy('timestamp', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setAlertHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return unsubscribe;
+  }, [])
+
   // Suspicious Hospitals
   useEffect(() => {
-    const q = query(
-      collection(db, 'hospitals'), 
-      where('fraudStatus', '==', 'Suspicious'),
-      orderBy('trustScore')
-    )
+    const q = query(collection(db, 'hospitals'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const hospitals = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        lastUpdated: doc.data().lastUpdated?.toDate()
+        lastUpdated: doc.data().lastUpdated?.toDate
+            ? doc.data().lastUpdated.toDate()
+            : new Date(doc.data().lastUpdated || Date.now())
       }))
+      .filter(h => h.fraudStatus === 'Suspicious')
+      .sort((a, b) => (a.trustScore || 0) - (b.trustScore || 0));
+      
       setSuspiciousHospitals(hospitals)
     })
     return unsubscribe
@@ -212,6 +265,7 @@ function Authority() {
 
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
@@ -247,21 +301,60 @@ function Authority() {
     alert('Fraud system alert sent!')
   }
 
-  const sendAlert = () => {
+  const sendAlert = async () => {
     if (!selectedHospitalForAlert || !alertMessageText) {
       alert("Please select a hospital and enter a message.");
       return;
     }
-    const fullMsg = `Alert for ${selectedHospitalForAlert}: ${alertMessageText}`;
-    localStorage.setItem('healthAlert', fullMsg)
-    setAlertMessage(fullMsg)
     setAlertsSent(prev => prev + 1)
+
+    try {
+      await addDoc(collection(db, 'sentAlerts'), {
+        hospitalName: selectedHospitalForAlert,
+        message: alertMessageText,
+        timestamp: serverTimestamp()
+      });
+    } catch (err) {
+      console.error("Error saving alert history:", err);
+    }
+
     alert(`SMS Alert successfully sent to citizens regarding ${selectedHospitalForAlert}!`)
     setAlertMessageText('')
     setSelectedHospitalForAlert('')
   }
 
+  const deleteSentAlert = async (id, alertObject) => {
+    if (window.confirm("Are you sure you want to delete this sent alert from history?")) {
+      try {
+        await deleteDoc(doc(db, 'sentAlerts', id));
+      } catch (err) {
+        console.error("Error deleting alert:", err);
+      }
+    }
+  }
 
+  const deleteFraudAlert = async (id) => {
+    if (window.confirm("Are you sure you want to permanently dismiss this integrity alert?")) {
+      try {
+        await deleteDoc(doc(db, 'alerts', id));
+      } catch (err) {
+        console.error("Error deleting fraud alert:", err);
+      }
+    }
+  }
+
+  // Compute dynamic disease list before return
+  const allDiseases = Array.from(new Set(
+    hospitals.flatMap(h => {
+      const names = [];
+      if (h.dengueCases) names.push('Dengue');
+      if (h.fluCases) names.push('Flu');
+      if (h.customDiseases) {
+        h.customDiseases.forEach(d => names.push(d.name.trim()));
+      }
+      return names;
+    })
+  )).filter(Boolean).sort();
 
   return (
 <>
@@ -281,12 +374,19 @@ function Authority() {
 </div>
 
 {alertMessage && (
-  <div className="alert-banner danger">
+  <div className="alert-banner danger" style={{ position: 'relative' }}>
     <div className="alert-icon">🚨</div>
     <div className="alert-content">
       <h4>Health Alert Active</h4>
       <p>{alertMessage}</p>
     </div>
+    <button 
+      onClick={() => { localStorage.setItem('dismissedAlertId', localStorage.getItem('currentAlertId')); setAlertMessage(''); }}
+      style={{ position: 'absolute', top: '10px', right: '15px', background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#991b1b' }}
+      title="Dismiss active alert"
+    >
+      ✖
+    </button>
   </div>
 )}
 
@@ -335,7 +435,7 @@ function Authority() {
            <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#fef2f2', marginBottom: '10px', borderRadius: '8px', borderLeft: '4px solid #ef4444' }}>
              <div>
                <span style={{ fontWeight: 'bold', color: '#7f1d1d', display: 'block' }}>{h.name}</span>
-               <span style={{ color: '#b91c1c', fontSize: '0.8rem' }}>Last Update Triggered ML Anomaly</span>
+               <span style={{ color: '#b91c1c', fontSize: '0.8rem', fontWeight: '500' }}>{h.lastMLAnalysis?.reason || 'Last Update Triggered ML Anomaly'}</span>
              </div>
              <div style={{ background: '#fee2e2', padding: '5px 10px', borderRadius: '20px', fontSize: '0.85rem' }}>
                <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Trust: {Math.round(h.trustScore || 0)}%</span>
@@ -357,7 +457,16 @@ function Authority() {
                <span style={{ color: '#dc2626', fontSize: '0.75rem', fontWeight: '800', background: '#fee2e2', padding: '2px 8px', borderRadius: '10px' }}>{a.type || 'SYSTEM FLAG'}</span>
              </div>
              <div style={{ color: '#b91c1c', fontSize: '0.85rem', marginTop: '6px', lineHeight: '1.4' }}>{a.message || a.reason}</div>
-             <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '8px', fontStyle: 'italic' }}>{a.timestamp.toLocaleString()}</div>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+               <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontStyle: 'italic' }}>{a.timestamp.toLocaleString()}</span>
+               <button 
+                 onClick={() => deleteFraudAlert(a.id)}
+                 style={{ background: '#fee2e2', border: '1px solid #f87171', color: '#dc2626', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                 title="Dismiss Alert"
+               >
+                 ✕ Dismiss
+               </button>
+             </div>
            </div>
          ))
        )}
@@ -419,10 +528,11 @@ function Authority() {
           <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '600' }}>Password</th>
           <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '600' }}>Total Beds</th>
           <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '600' }}>Available Beds</th>
-          <th style={{ padding: '14px 16px', color: '#ef4444', fontWeight: '600' }}>Dengue Cases</th>
-          <th style={{ padding: '14px 16px', color: '#0ea5e9', fontWeight: '600' }}>Flu Cases</th>
-          <th style={{ padding: '14px 16px', color: '#f59e0b', fontWeight: '600' }}>Other Diseases</th>
+          {allDiseases.map(dName => (
+            <th key={dName} style={{ padding: '14px 16px', color: '#dc2626', fontWeight: '600' }}>{dName}</th>
+          ))}
           <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '600' }}>Occupancy Rate</th>
+          <th style={{ padding: '14px 16px', color: '#475569', fontWeight: '600' }}>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -441,13 +551,20 @@ function Authority() {
               <td style={{ padding: '16px', color: '#64748b', fontSize: '0.9rem', fontFamily: 'monospace' }}>{h.password || 'N/A'}</td>
               <td style={{ padding: '16px', color: '#334155' }}>{tBeds}</td>
               <td style={{ padding: '16px', color: '#10b981', fontWeight: 'bold' }}>{aBeds}</td>
-              <td style={{ padding: '16px', color: '#ef4444', fontWeight: 'bold' }}>{h.dengueCases || 0}</td>
-              <td style={{ padding: '16px', color: '#0ea5e9', fontWeight: 'bold' }}>{h.fluCases || 0}</td>
-              <td style={{ padding: '16px', color: '#f59e0b', fontSize: '0.9rem', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={h.customDiseases?.map(d => `${d.name}: ${d.cases}`).join(', ')}>
-                {h.customDiseases && h.customDiseases.length > 0 
-                  ? h.customDiseases.map(d => `${d.name}: ${d.cases}`).join(', ') 
-                  : 'None'}
-              </td>
+              {allDiseases.map(dName => {
+                let count = 0;
+                if (dName.toLowerCase() === 'dengue') count = h.dengueCases || 0;
+                else if (dName.toLowerCase() === 'flu') count = h.fluCases || 0;
+                if (h.customDiseases) {
+                  const customD = h.customDiseases.find(d => d.name.trim().toLowerCase() === dName.toLowerCase());
+                  if (customD) count = customD.cases;
+                }
+                return (
+                  <td key={dName} style={{ padding: '16px', color: count > 0 ? '#ef4444' : '#94a3b8', fontWeight: count > 0 ? 'bold' : 'normal' }}>
+                    {count || '-'}
+                  </td>
+                );
+              })}
               <td style={{ padding: '16px' }}>
                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ minWidth: '40px', fontWeight: '500' }}>{occupancy}%</span>
@@ -456,11 +573,25 @@ function Authority() {
                     </div>
                  </div>
               </td>
+              <td style={{ padding: '16px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button 
+                    onClick={() => editHospitalName(h.id, h.name)} 
+                    style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                    Rename
+                  </button>
+                  <button 
+                    onClick={() => deleteHospital(h.id)} 
+                    style={{ padding: '6px 12px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                    Remove
+                  </button>
+                </div>
+              </td>
             </tr>
           );
         }) : (
           <tr>
-            <td colSpan="10" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>No hospitals registered yet. Add one above!</td>
+            <td colSpan="11" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>No hospitals registered yet. Add one above!</td>
           </tr>
         )}
       </tbody>
@@ -470,7 +601,7 @@ function Authority() {
 
 <div className="chart-container">
   <h3 className="chart-title">Disease Trend Analytics</h3>
-  <div style={{ position: 'relative', height: '350px', width: '100%' }}>
+  <div style={{ position: 'relative', height: '450px', width: '100%' }}>
     <Line data={chartData} options={chartOptions} />
   </div>
 </div>
@@ -514,6 +645,45 @@ function Authority() {
     >
       Send SMS Alert
     </button>
+  </div>
+
+  <div style={{ marginTop: '40px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+    <h4 style={{ color: '#0f172a', marginBottom: '15px' }}>Sent Alerts History</h4>
+    {alertHistory.length === 0 ? (
+      <p style={{ color: '#64748b' }}>No alerts have been sent yet.</p>
+    ) : (
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden' }}>
+          <thead>
+            <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
+              <th style={{ padding: '12px', color: '#475569', fontWeight: '600' }}>Date</th>
+              <th style={{ padding: '12px', color: '#475569', fontWeight: '600' }}>Target</th>
+              <th style={{ padding: '12px', color: '#475569', fontWeight: '600' }}>Message</th>
+              <th style={{ padding: '12px', color: '#475569', fontWeight: '600' }}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {alertHistory.map(a => (
+              <tr key={a.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>
+                  {a.timestamp?.toDate ? a.timestamp.toDate().toLocaleString() : 'Just now'}
+                </td>
+                <td style={{ padding: '12px', fontWeight: 'bold', color: '#991b1b' }}>{a.hospitalName}</td>
+                <td style={{ padding: '12px', color: '#334155' }}>{a.message}</td>
+                <td style={{ padding: '12px' }}>
+                  <button 
+                    onClick={() => deleteSentAlert(a.id, a)}
+                    style={{ padding: '6px 12px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
   </div>
 </div>
 

@@ -79,6 +79,18 @@ def detect_fraud():
             rules.append('Abnormal Bed Change (>50%)')
             severity = 'Medium'
         
+        # Disease outbreak rules
+        current_cases = data.get('current_cases', 0)
+        prev_cases = data.get('previous_cases', current_cases)
+        cases_change = current_cases - prev_cases
+        
+        if cases_change > 50 and current_cases > prev_cases * 1.5:
+            rules.append('Sudden Severe Disease Spike (>50 cases)')
+            severity = 'High'
+        elif cases_change > 20:
+            rules.append('Abnormal Disease Spike')
+            severity = 'Medium'
+            
         # Equipment rules
         if current_vent > avg_vent * 2:
             rules.append('Ventilator Spike')

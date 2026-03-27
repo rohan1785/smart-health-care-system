@@ -9,7 +9,7 @@ export default defineConfig({
     open: false,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://smart-health-care-system-1.onrender.com',
         changeOrigin: true,
       }
     }

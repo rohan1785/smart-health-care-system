@@ -1789,7 +1789,7 @@ ${sugg.length ? `<div class="shcb-sugg"><div class="shcb-sugg-lbl">💡 Did you 
           "✕"
         ) : (
           <img
-            src="/img/Gemini_Generated_Image_e61tpje61tpje61t-removebg-preview copy.png"
+            src="/logo-transparent.png"
             alt="Arogya360 Logo"
             style={{
               height: "40px", // Adjusted to fit the 58px button
