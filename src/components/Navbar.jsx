@@ -33,7 +33,7 @@ function Navbar() {
         onClick={() => navigate("/")}
       >
         <img
-          src="/logo-transparent.png"
+          src="public/logo-transparent.png"
           alt="Arogya360 Logo"
           style={{
             height: "100px", // adjust size as needed
