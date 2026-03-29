@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
@@ -79,12 +80,12 @@ const Footer = () => {
           </div>
           
           <div className="flex flex-wrap items-center gap-8 justify-center">
-            <a href="#" className="hover:text-blue-400 transition-colors block">
+            <Link to="/privacy-policy" className="hover:text-blue-400 transition-colors block">
               Privacy Policy
-            </a>
-            <a href="#" className="hover:text-blue-400 transition-colors block">
+            </Link>
+            <Link to="/terms" className="hover:text-blue-400 transition-colors block">
               Terms of Service
-            </a>
+            </Link>
           </div>
 
         </div>

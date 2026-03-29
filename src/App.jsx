@@ -14,6 +14,8 @@ import Hospital from "./pages/Hospital";
 import Authority from "./pages/Authority";
 import Hirkani from "./pages/Hirkani";
 import AuthorityFeedback from "./pages/AuthorityFeedback";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsConditions from "./pages/TermsConditions";
 
 const QA_DATASET = [
   {
@@ -1946,6 +1948,19 @@ export default function App() {
                   <AuthorityFeedback />
                 </Layout>
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/privacy-policy"
+            element={
+              <PrivacyPolicy />
+            }
+          />
+
+          <Route
+            path="/terms"
+            element={
+              <TermsConditions />
             }
           />
         </Routes>
