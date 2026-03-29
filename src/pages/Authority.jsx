@@ -3,6 +3,8 @@ import { collection, getDocs, query, where, orderBy, onSnapshot, updateDoc, addD
 import { db } from "../firebase"
 import { useNavigate } from 'react-router-dom'
 import { Line, Bar } from 'react-chartjs-2'
+import { jsPDF } from 'jspdf'
+import html2canvas from 'html2canvas'
 import {
   Chart as ChartJS,
   LineElement,
@@ -44,18 +46,69 @@ function Authority() {
   const [alertMessageText, setAlertMessageText] = useState('')
   const [alertsSent, setAlertsSent] = useState(0)
   const [alertHistory, setAlertHistory] = useState([]) // New State
+  const [dismissedRecs, setDismissedRecs] = useState([])
+  
+  const handleDismissRec = (key) => setDismissedRecs(prev => [...prev, key]);
   
   const [name, setName] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  
+  const GOVT_HOSPITALS = [
+    "AIIMS Hospital, New Delhi", "AIIMS Hospital, Bhopal", "AIIMS Hospital, Bhubaneswar", "AIIMS Hospital, Jodhpur", "AIIMS Hospital, Patna", "AIIMS Hospital, Raipur", "AIIMS Hospital, Rishikesh", "AIIMS Hospital, Nagpur", "AIIMS Hospital, Kalyani", "AIIMS Hospital, Gorakhpur", "AIIMS Hospital, Bathinda", "AIIMS Hospital, Guwahati",
+    "Safdarjung Government Hospital, New Delhi", "RML Government Hospital, New Delhi", "Lok Nayak Government Hospital, New Delhi",
+    "Sir J. J. Government Hospital, Mumbai", "KEM Municipal Hospital, Mumbai", "Sion Municipal Hospital (LTMGH), Mumbai", "Nair Municipal Hospital, Mumbai", "Cama and Albless Govt Hospital, Mumbai", "St. George Govt Hospital, Mumbai",
+    "Sassoon General Govt Hospital, Pune", "Yashwantrao Chavan Memorial Hospital (YCMH), Pune", "Aundh District Civil Hospital, Pune", "Kamla Nehru Municipal Hospital, Pune",
+    "GMCH Govt Hospital, Nagpur", "IGGMC Govt Hospital, Nagpur",
+    "GMCH Govt Hospital, Latur", "Ghati Govt Hospital (GMCH), Chhatrapati Sambhajinagar",
+    "Govt Hospital (GMCH), Nanded", "Shri Bhausaheb Hire Govt Hospital, Dhule", "RCSM Govt Hospital, Kolhapur",
+    "Rajiv Gandhi Govt General Hospital, Chennai", "Stanley Govt Hospital, Chennai", "Kilpauk Govt Hospital, Chennai",
+    "Victoria Govt Hospital, Bangalore", "Bowring and Lady Curzon Govt Hospital, Bangalore",
+    "Osmania General Govt Hospital, Hyderabad", "Gandhi Govt Hospital, Hyderabad", "NIMS Govt Hospital, Hyderabad",
+    "KGMU Govt Hospital, Lucknow", "Sanjay Gandhi PGI Govt Hospital, Lucknow",
+    "SMS Govt Hospital, Jaipur", "MDM Govt Hospital, Jodhpur",
+    "PGIMER Govt Hospital, Chandigarh",
+    "SSKM Govt Hospital, Kolkata", "Calcutta Medical Govt Hospital, Kolkata",
+    "PMCH Govt Hospital, Patna", "NMCH Govt Hospital, Patna",
+    "RIMS Govt Hospital, Ranchi",
+    "SCB Govt Hospital, Cuttack",
+    "Civil Hospital, Ahmedabad",
+    "Govt Hospital, Thiruvananthapuram", "Govt Hospital, Kozhikode",
+    "Goa Govt Hospital (GMC), Bambolim",
+    "Govt Hospital (IGMC), Shimla",
+    "Govt Hospital, Jammu", "Govt Hospital (SKIMS), Srinagar",
+    "District Civil Hospital", "Sub-District Govt Hospital (SDH)", "Primary Health Centre (PHC)", "Rural Govt Hospital (RH)"
+  ];
+  const filteredHospitals = name ? GOVT_HOSPITALS.filter(h => h.toLowerCase().includes(name.toLowerCase())) : [];
   const [beds, setBeds] = useState('')
   const [available, setAvailable] = useState('')
+  const [locationStr, setLocationStr] = useState('')
   
   const [hospitals, setHospitals] = useState([])
   const [totalBeds, setTotalBeds] = useState(0)
   const [availableBedsCount, setAvailableBedsCount] = useState(0)
   const [totalActiveCases, setTotalActiveCases] = useState(0)
+  const [reportGenerating, setReportGenerating] = useState(false)
 
   const addHospital = async () => {
     if (!name || !beds || !available) return
+
+    let lat = null;
+    let lng = null;
+    
+    // Geocode the location or hospital name to get coordinates
+    const searchQuery = locationStr || name;
+    if (searchQuery) {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery + ', Maharashtra, India')}`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          lat = parseFloat(data[0].lat);
+          lng = parseFloat(data[0].lon);
+        }
+      } catch (err) {
+        console.error("Geocoding failed", err);
+      }
+    }
 
     try {
       const email = name.toLowerCase().replace(/[^a-z0-9]/g, '') + '@hospital.com';
@@ -65,7 +118,9 @@ function Authority() {
         name: name,
         totalBeds: parseInt(beds),
         availableBeds: parseInt(available),
-        location: "Not Specified",
+        location: locationStr || "Not Specified",
+        lat: lat,
+        lng: lng,
         email: email,
         password: password,
         dengueCases: 0,
@@ -77,7 +132,7 @@ function Authority() {
 
       setHospitals(prev => [...prev, { 
         id: docRef.id, name: name, totalBeds: parseInt(beds), availableBeds: parseInt(available), 
-        location: "Not Specified", email: email, password: password, dengueCases: 0, fluCases: 0,
+        location: locationStr || "Not Specified", lat: lat, lng: lng, email: email, password: password, dengueCases: 0, fluCases: 0,
         fraudStatus: 'Normal', trustScore: 100
       }])
       setTotalBeds(prev => prev + parseInt(beds))
@@ -86,6 +141,8 @@ function Authority() {
       setName('')
       setBeds('')
       setAvailable('')
+      setLocationStr('')
+
       
       alert(`Hospital added successfully!\n\nPlease save these login credentials for the hospital:\nEmail: ${email}\nPassword: ${password}`);
     } catch (error) {
@@ -343,6 +400,151 @@ function Authority() {
     }
   }
 
+  const generatePdfReport = async () => {
+    try {
+      setReportGenerating(true)
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+      let y = 40
+
+      const captureElementImage = async (elementId, sectionTitle) => {
+        const element = document.getElementById(elementId)
+        if (!element) return
+
+        try {
+          const canvas = await html2canvas(element, { useCORS: true, backgroundColor: '#ffffff' })
+          const imgData = canvas.toDataURL('image/png')
+          const maxWidth = 520
+          const ratio = canvas.height / canvas.width
+          const imgHeight = Math.min(320, maxWidth * ratio)
+
+          if (y + imgHeight + 80 > 820) {
+            doc.addPage()
+            y = 40
+          }
+
+          doc.setFontSize(14)
+          doc.setFont('', 'bold')
+          doc.text(sectionTitle, 40, y)
+          y += 18
+
+          doc.addImage(imgData, 'PNG', 40, y, maxWidth, imgHeight)
+          y += imgHeight + 24
+        } catch (captureError) {
+          console.warn('PDF capture error for', elementId, captureError)
+        }
+      }
+
+      const renderLine = (text, x, offsetY = 18) => {
+        if (y >= 750) {
+          doc.addPage()
+          y = 40
+        }
+        doc.text(text, x, y)
+        y += offsetY
+      }
+
+      // Title
+      doc.setFontSize(20)
+      doc.setFont('', 'bold')
+      doc.text('Municipal Health Analytics Report', 40, y)
+      y += 30
+
+      doc.setFontSize(12)
+      doc.setFont('', 'normal')
+      doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 40, y)
+      y += 20
+
+      // Summary Stats
+      doc.setFontSize(16)
+      doc.setFont('', 'bold')
+      doc.text('Summary Statistics', 40, y)
+      y += 20
+
+      doc.setFontSize(12)
+      doc.setFont('', 'normal')
+      renderLine(`Total Hospitals: ${hospitals.length}`, 40)
+      renderLine(`Total Beds: ${totalBeds}`, 40)
+      renderLine(`Available Beds: ${availableBedsCount}`, 40)
+      renderLine(`Total Active Cases: ${totalActiveCases}`, 40)
+      renderLine(`Alerts Sent: ${alertsSent}`, 40)
+
+      // Hospital Table
+      if (y > 600) {
+        doc.addPage()
+        y = 40
+      }
+
+      doc.setFontSize(16)
+      doc.setFont('', 'bold')
+      doc.text('Hospital Details', 40, y)
+      y += 20
+
+      doc.setFontSize(10)
+      doc.setFont('', 'bold')
+      renderLine('Hospital Name | Total Beds | Available | Dengue | Flu | Trust Score | Status', 40, 15)
+
+      hospitals.slice(0, 15).forEach(hospital => {
+        const line = `${hospital.name} | ${hospital.totalBeds} | ${hospital.availableBeds} | ${hospital.dengueCases || 0} | ${hospital.fluCases || 0} | ${hospital.trustScore || 100} | ${hospital.fraudStatus || 'Normal'}`
+        renderLine(line, 40, 12)
+      })
+
+      if (hospitals.length > 15) {
+        renderLine(`... and ${hospitals.length - 15} more hospitals`, 40)
+      }
+
+      // Capture charts if available
+      await captureElementImage('trust-chart', 'Hospital Trust Scores')
+      await captureElementImage('disease-chart', 'Disease Trends')
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages()
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        doc.setFontSize(8)
+        doc.setFont('', 'normal')
+        doc.text(`Page ${i} of ${pageCount}`, 40, 820)
+        doc.text('Generated by Smart Health Care System', 300, 820)
+      }
+
+      doc.save('municipal-health-report.pdf')
+      setReportGenerating(false)
+    } catch (error) {
+      console.error('PDF generation error:', error)
+      alert('Failed to generate PDF report')
+      setReportGenerating(false)
+    }
+  }
+
+  const exportCsv = () => {
+    const csvContent = [
+      ['Hospital Name', 'Total Beds', 'Available Beds', 'Dengue Cases', 'Flu Cases', 'Trust Score', 'Fraud Status', 'Location'],
+      ...hospitals.map(h => [
+        h.name,
+        h.totalBeds,
+        h.availableBeds,
+        h.dengueCases || 0,
+        h.fluCases || 0,
+        h.trustScore || 100,
+        h.fraudStatus || 'Normal',
+        h.location || 'Not Specified'
+      ])
+    ].map(row => row.join(',')).join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', 'hospital-data.csv')
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const printDashboard = () => {
+    window.print()
+  }
+
   // Compute dynamic disease list before return
   const allDiseases = Array.from(new Set(
     hospitals.flatMap(h => {
@@ -416,6 +618,74 @@ function Authority() {
 
 
 
+<div className="no-print" style={{
+  marginTop: '20px',
+  display: 'flex',
+  justifyContent: 'center',
+  gap: '14px',
+  alignItems: 'center'
+}}>
+  <button
+    onClick={generatePdfReport}
+    disabled={reportGenerating}
+    style={{
+      minWidth: '180px',
+      backgroundColor: reportGenerating ? '#6B7280' : '#1D4ED8',
+      border: '1px solid #1D4ED8',
+      color: '#FFFFFF',
+      padding: '12px 20px',
+      borderRadius: '8px',
+      cursor: reportGenerating ? 'not-allowed' : 'pointer',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+      boxShadow: reportGenerating ? 'none' : '0 2px 6px rgba(0, 0, 0, 0.15)'
+    }}
+  >
+    {reportGenerating ? 'Generating PDF...' : 'Download PDF Report'}
+  </button>
+
+  <button
+    onClick={exportCsv}
+    style={{
+      minWidth: '140px',
+      backgroundColor: '#047857',
+      border: '1px solid #047857',
+      color: '#FFFFFF',
+      padding: '12px 20px',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
+    }}
+  >
+    Export CSV
+  </button>
+
+  <button
+    onClick={printDashboard}
+    style={{
+      minWidth: '150px',
+      backgroundColor: '#B91C1C',
+      border: '1px solid #991B1B',
+      color: '#FFFFFF',
+      padding: '12px 20px',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
+    }}
+  >
+    Print Dashboard
+  </button>
+</div>
+
+
+
 {/* ML Fraud Dashboard */}
 <div className="chart-container" style={{ marginTop: '30px', border: '2px solid #fecaca', backgroundColor: '#fff1f2', borderRadius: '12px' }}>
   <h3 className="chart-title" style={{ color: '#991b1b', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.4rem' }}>
@@ -479,14 +749,23 @@ function Authority() {
 
   <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginTop: '20px' }}>
 
-    <div className="form-group" style={{ flex: '1', minWidth: '200px', marginBottom: 0 }}>
+    <div className="form-group" style={{ flex: '2', minWidth: '300px', marginBottom: 0 }}>
       <input
         type="text"
-        placeholder="Hospital Name"
+        placeholder="Search Government Hospital..."
         value={name}
         onChange={(e) => setName(e.target.value)}
         className="form-input"
+        list="govt-hospitals-list"
+        autoComplete="new-password"
+        name="new-hospital-search"
+        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
       />
+      <datalist id="govt-hospitals-list">
+        {GOVT_HOSPITALS.map((h, i) => (
+          <option key={i} value={h} />
+        ))}
+      </datalist>
     </div>
 
     <div className="form-group" style={{ flex: '1', minWidth: '150px', marginBottom: 0 }}>
@@ -505,6 +784,16 @@ function Authority() {
         placeholder="Available Beds"
         value={available}
         onChange={(e) => setAvailable(e.target.value)}
+        className="form-input"
+      />
+    </div>
+
+    <div className="form-group" style={{ flex: '1', minWidth: '150px', marginBottom: 0 }}>
+      <input
+        type="text"
+        placeholder="City/District (e.g. Latur)"
+        value={locationStr}
+        onChange={(e) => setLocationStr(e.target.value)}
         className="form-input"
       />
     </div>
@@ -693,35 +982,57 @@ function Authority() {
 
   <div className="prediction-grid">
 
-    {hospitals.filter(h => h.dengueCases > 10).map((h, i) => (
-      <div key={`dengue-${i}`} className="prediction-card high">
+    {hospitals.filter(h => h.dengueCases > 10).map((h, i) => {
+      const recKey = `dengue-${h.id || h.name}`;
+      if (dismissedRecs.includes(recKey)) return null;
+      return (
+      <div key={`dengue-${i}`} className="prediction-card high" style={{ position: 'relative' }}>
+        <button onClick={() => handleDismissRec(recKey)} style={{ position: 'absolute', right: '15px', top: '15px', background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✖</button>
         <h4>🚨 Severe Dengue Outbreak</h4>
         <span className="prediction-badge high">{h.name}</span>
         <p>Active Dengue Cases: <strong>{h.dengueCases}</strong></p>
         <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '5px' }}>Action: Send targeted SMS alert to nearby citizens.</p>
-        <button className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '0.8rem', marginTop: '10px' }} onClick={() => { setSelectedHospitalForAlert(h.name); setAlertMessageText('DENGUE ALERT: High number of cases at ' + h.name + '. Please avoid stagnant water and use mosquito repellents. Stay Safe!'); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }}>Draft Alert</button>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+          <button className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => { setSelectedHospitalForAlert(h.name); setAlertMessageText('DENGUE ALERT: High number of cases at ' + h.name + '. Please avoid stagnant water and use mosquito repellents. Stay Safe!'); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }}>Draft SMS</button>
+          <button className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }} onClick={() => handleDismissRec(recKey)}>Delete</button>
+        </div>
       </div>
-    ))}
+    )})}
 
-    {hospitals.filter(h => h.fluCases > 10).map((h, i) => (
-      <div key={`flu-${i}`} className="prediction-card moderate">
+    {hospitals.filter(h => h.fluCases > 10).map((h, i) => {
+      const recKey = `flu-${h.id || h.name}`;
+      if (dismissedRecs.includes(recKey)) return null;
+      return (
+      <div key={`flu-${i}`} className="prediction-card moderate" style={{ position: 'relative' }}>
+        <button onClick={() => handleDismissRec(recKey)} style={{ position: 'absolute', right: '15px', top: '15px', background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✖</button>
         <h4>⚠️ High Flu Transmission</h4>
         <span className="prediction-badge moderate">{h.name}</span>
         <p>Active Flu Cases: <strong>{h.fluCases}</strong></p>
-        <button className="btn" style={{ backgroundColor: '#f59e0b', color: '#fff', padding: '6px 12px', fontSize: '0.8rem', marginTop: '10px', border: 'none', cursor: 'pointer', borderRadius: '4px' }} onClick={() => { setSelectedHospitalForAlert(h.name); setAlertMessageText('FLU ALERT: Rapid flu transmission near ' + h.name + '. Wear masks and consult a doctor if symptoms persist.'); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }}>Draft Alert</button>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+          <button className="btn" style={{ backgroundColor: '#f59e0b', color: '#fff', padding: '6px 12px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', borderRadius: '4px' }} onClick={() => { setSelectedHospitalForAlert(h.name); setAlertMessageText('FLU ALERT: Rapid flu transmission near ' + h.name + '. Wear masks and consult a doctor if symptoms persist.'); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }}>Draft SMS</button>
+          <button className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', cursor: 'pointer', borderRadius: '4px' }} onClick={() => handleDismissRec(recKey)}>Delete</button>
+        </div>
       </div>
-    ))}
+    )})}
 
-    {hospitals.filter(h => { const b = parseInt(h.availableBeds) || 0; return b < 20 && b > 0 }).map((h, i) => (
-      <div key={`bed-${i}`} className="prediction-card" style={{ borderLeftColor: '#f43f5e' }}>
+    {hospitals.filter(h => { const b = parseInt(h.availableBeds) || 0; return b < 20 && b > 0 }).map((h, i) => {
+       const recKey = `beds-${h.id || h.name}`;
+       if (dismissedRecs.includes(recKey)) return null;
+       return (
+      <div key={`bed-${i}`} className="prediction-card" style={{ borderLeftColor: '#f43f5e', position: 'relative' }}>
+        <button onClick={() => handleDismissRec(recKey)} style={{ position: 'absolute', right: '15px', top: '15px', background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✖</button>
         <h4>❌ Critical Bed Shortage</h4>
         <span className="prediction-badge" style={{ backgroundColor: '#f43f5e', color: 'white' }}>{h.name}</span>
         <p>Only <strong>{h.availableBeds} beds</strong> available. High patient load.</p>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+          <button className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => { setSelectedHospitalForAlert(h.name); setAlertMessageText('HOSPITAL ALERT: ' + h.name + ' currently has a severe bed shortage (' + h.availableBeds + ' left). Please direct emergency non-critical cases to alternative municipal hospitals.'); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }}>Draft SMS</button>
+          <button className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }} onClick={() => handleDismissRec(recKey)}>Delete</button>
+        </div>
       </div>
-    ))}
+    )})}
 
-    {hospitals.length === 0 && (
-      <p style={{ color: '#64748b' }}>No data available for AI analysis yet.</p>
+    {(hospitals.length === 0 || (hospitals.filter(h => h.dengueCases > 10).length === 0 && hospitals.filter(h => h.fluCases > 10).length === 0 && hospitals.filter(h => { const b = parseInt(h.availableBeds) || 0; return b < 20 && b > 0 }).length === 0)) && (
+      <p style={{ color: '#64748b' }}>No active threats or recommendations. System is monitoring smoothly.</p>
     )}
 
   </div>
@@ -732,5 +1043,27 @@ function Authority() {
 </>
 )
 }
+
+<style jsx>{`
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+    .print-only {
+      display: block !important;
+    }
+    body {
+      font-size: 12px;
+    }
+    .dashboard-card {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .chart-container {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
+`}</style>
 
 export default Authority

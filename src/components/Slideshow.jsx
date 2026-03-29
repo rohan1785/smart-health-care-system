@@ -121,6 +121,7 @@ export default function Slideshow() {
             style={{
               backgroundImage: `url(${SLIDES[current].image})`,
               backgroundSize: "cover",
+              backgroundPosition: "center",
             }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

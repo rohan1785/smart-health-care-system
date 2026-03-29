@@ -123,20 +123,20 @@ function Login() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%)",
+        backgroundColor: "#F5F5F5",
         padding: "20px",
-        fontFamily: '"Inter", sans-serif',
+        fontFamily: 'Arial, sans-serif',
       }}
     >
       <div
         style={{
-          background: "white",
-          borderRadius: "24px",
-          padding: "48px 40px",
+          backgroundColor: "white",
+          borderRadius: "4px",
+          padding: "40px",
           width: "100%",
-          maxWidth: "440px",
-          boxShadow: "0 20px 40px -15px rgba(0,0,0,0.05)",
-          border: "1px solid rgba(226, 232, 240, 0.8)",
+          maxWidth: "420px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          border: "1px solid #D1D5DB",
         }}
       >
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
@@ -152,24 +152,24 @@ function Login() {
               src="/logo-transparent.png"
               alt="Arogya360 Logo"
               style={{
-                height: "150px", // adjust size as needed
+                height: "120px",
                 objectFit: "contain",
               }}
             />
           </div>
           <h1
             style={{
-              fontSize: "1.75rem",
+              fontSize: "1.5rem",
               fontWeight: "700",
-              color: "#0f172a",
+              color: "#1F2937",
               marginBottom: "6px",
             }}
           >
             Smart Health System
           </h1>
-          <p style={{ color: "#64748b", fontSize: "0.95rem" }}>
+          <p style={{ color: "#6B7280", fontSize: "0.875rem" }}>
             Sign in as{" "}
-            <strong style={{ color: "#0d9488" }}>
+            <strong style={{ color: "#003D82" }}>
               {selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
             </strong>
           </p>
@@ -180,16 +180,16 @@ function Login() {
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "20px",
+            gap: "16px",
             width: "100%",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <label
               style={{
                 fontSize: "0.875rem",
-                fontWeight: "500",
-                color: "#475569",
+                fontWeight: "600",
+                color: "#374151",
               }}
             >
               Email or Username
@@ -202,25 +202,22 @@ function Login() {
               required
               style={{
                 width: "100%",
-                padding: "14px 16px",
-                borderRadius: "12px",
-                border: "1px solid #cbd5e1",
-                backgroundColor: "#f8fafc",
-                fontSize: "0.95rem",
+                padding: "10px 12px",
+                borderRadius: "4px",
+                border: "1px solid #D1D5DB",
+                backgroundColor: "#FFFFFF",
+                fontSize: "0.875rem",
                 outline: "none",
-                transition: "border-color 0.2s",
               }}
-              onFocus={(e) => (e.target.style.borderColor = "#0d9488")}
-              onBlur={(e) => (e.target.style.borderColor = "#cbd5e1")}
             />
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <label
               style={{
                 fontSize: "0.875rem",
-                fontWeight: "500",
-                color: "#475569",
+                fontWeight: "600",
+                color: "#374151",
               }}
             >
               Password
@@ -233,16 +230,13 @@ function Login() {
               required
               style={{
                 width: "100%",
-                padding: "14px 16px",
-                borderRadius: "12px",
-                border: "1px solid #cbd5e1",
-                backgroundColor: "#f8fafc",
-                fontSize: "0.95rem",
+                padding: "10px 12px",
+                borderRadius: "4px",
+                border: "1px solid #D1D5DB",
+                backgroundColor: "#FFFFFF",
+                fontSize: "0.875rem",
                 outline: "none",
-                transition: "border-color 0.2s",
               }}
-              onFocus={(e) => (e.target.style.borderColor = "#0d9488")}
-              onBlur={(e) => (e.target.style.borderColor = "#cbd5e1")}
             />
           </div>
 
@@ -250,19 +244,16 @@ function Login() {
             type="submit"
             style={{
               width: "100%",
-              padding: "16px",
-              backgroundColor: "#0d9488",
+              padding: "12px",
+              backgroundColor: "#047857",
               color: "white",
               border: "none",
-              borderRadius: "12px",
-              fontSize: "1rem",
+              borderRadius: "4px",
+              fontSize: "0.875rem",
               fontWeight: "600",
               cursor: "pointer",
-              transition: "background-color 0.2s",
-              boxShadow: "0 4px 12px rgba(13, 148, 136, 0.2)",
+              marginTop: "8px"
             }}
-            onMouseOver={(e) => (e.target.style.backgroundColor = "#0f766e")}
-            onMouseOut={(e) => (e.target.style.backgroundColor = "#0d9488")}
           >
             Sign In
           </button>
@@ -270,29 +261,29 @@ function Login() {
 
         {selectedRole === "citizen" ? (
           <>
-            <div style={{ marginTop: "24px", textAlign: "center" }}>
+            <div style={{ marginTop: "20px", textAlign: "center" }}>
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  margin: "20px 0",
+                  margin: "16px 0",
                 }}
               >
                 <div
-                  style={{ flex: 1, backgroundColor: "#e2e8f0", height: "1px" }}
+                  style={{ flex: 1, backgroundColor: "#D1D5DB", height: "1px" }}
                 ></div>
                 <span
                   style={{
-                    padding: "0 16px",
-                    color: "#94a3b8",
-                    fontSize: "0.85rem",
-                    fontWeight: "500",
+                    padding: "0 12px",
+                    color: "#9CA3AF",
+                    fontSize: "0.75rem",
+                    fontWeight: "600",
                   }}
                 >
                   OR
                 </span>
                 <div
-                  style={{ flex: 1, backgroundColor: "#e2e8f0", height: "1px" }}
+                  style={{ flex: 1, backgroundColor: "#D1D5DB", height: "1px" }}
                 ></div>
               </div>
               <button
@@ -300,23 +291,23 @@ function Login() {
                 onClick={handleGoogleLogin}
                 style={{
                   width: "100%",
-                  padding: "14px",
+                  padding: "10px",
                   backgroundColor: "white",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: "12px",
-                  fontSize: "0.95rem",
+                  border: "1px solid #D1D5DB",
+                  borderRadius: "4px",
+                  fontSize: "0.875rem",
                   fontWeight: "500",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "8px",
-                  color: "#334155",
+                  color: "#374151",
                 }}
               >
                 <img
                   src="https://www.svgrepo.com/show/475656/google-color.svg"
-                  width="20"
+                  width="18"
                   alt="google"
                 />
                 Continue with Google
@@ -325,16 +316,16 @@ function Login() {
 
             <div
               style={{
-                marginTop: "24px",
+                marginTop: "20px",
                 textAlign: "center",
-                fontSize: "0.95rem",
+                fontSize: "0.875rem",
               }}
             >
-              <span style={{ color: "#64748b" }}>New User? </span>
+              <span style={{ color: "#6B7280" }}>New User? </span>
               <Link
                 to="/register"
                 style={{
-                  color: "#0d9488",
+                  color: "#003D82",
                   fontWeight: "600",
                   textDecoration: "none",
                 }}
@@ -343,11 +334,11 @@ function Login() {
               </Link>
             </div>
 
-            <div style={{ marginTop: "20px", textAlign: "center" }}>
+            <div style={{ marginTop: "16px", textAlign: "center" }}>
               <Link
                 to="/"
                 style={{
-                  color: "#94a3b8",
+                  color: "#9CA3AF",
                   textDecoration: "none",
                   fontSize: "0.875rem",
                 }}
@@ -357,13 +348,13 @@ function Login() {
             </div>
           </>
         ) : (
-          <div style={{ marginTop: "32px", textAlign: "center" }}>
+          <div style={{ marginTop: "24px", textAlign: "center" }}>
             <Link
               to="/"
               style={{
-                color: "#64748b",
+                color: "#6B7280",
                 textDecoration: "none",
-                fontSize: "0.95rem",
+                fontSize: "0.875rem",
                 fontWeight: "500",
                 display: "inline-flex",
                 alignItems: "center",
