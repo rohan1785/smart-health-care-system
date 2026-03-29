@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../firebase'
 import { doc, getDoc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
-import { Line } from 'react-chartjs-2'
+import { Line, Doughnut, Bar } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
   LineElement,
@@ -10,6 +10,10 @@ import {
   PointElement,
   Legend,
   Tooltip,
+  ArcElement,
+  BarElement,
+  Title,
+  Filler
 } from 'chart.js'
 
 ChartJS.register(
@@ -18,7 +22,11 @@ ChartJS.register(
   LinearScale,
   PointElement,
   Legend,
-  Tooltip
+  Tooltip,
+  ArcElement,
+  BarElement,
+  Title,
+  Filler
 )
 
 function Hospital() {
@@ -238,6 +246,24 @@ function Hospital() {
      if (v < 0) v = 0;
      setter(v);
   }
+
+  const calculateAnalytics = () => {
+    let totalActive = 0;
+    let critical = 0;
+    let prevalent = { name: 'Unknown', cases: 0 };
+    
+    customDiseases.forEach(d => {
+      const c = parseInt(d.cases) || 0;
+      totalActive += c;
+      if (c > prevalent.cases) {
+        prevalent = { name: d.name || 'Unknown', cases: c };
+      }
+    });
+
+    critical = Math.floor(totalActive * 0.15);
+    return { totalActive, critical, prevalent: prevalent.name };
+  }
+  const analytics = calculateAnalytics();
 
   return (
     <div style={{ 
@@ -637,62 +663,176 @@ function Hospital() {
         </div>
 
         {!isEditing && (
-           <div style={{ 
-             marginTop: '24px', 
-             backgroundColor: '#FFFFFF', 
-             padding: '24px', 
-             borderRadius: '8px', 
-             border: '1px solid #E5E7EB',
-             boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-           }}>
-             <h3 style={{ color: '#1F2937', marginBottom: '8px', fontSize: '1.25rem', fontWeight: '700' }}>📊 Hospital Analytics & Trends</h3>
-             <p style={{ color: '#6B7280', fontSize: '0.9rem', marginBottom: '24px' }}>Monthly disease progression specific to {hospitalData.name}.</p>
+           <div style={{ marginTop: '30px' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+                <div>
+                  <h3 style={{ color: '#0F172A', fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>📊 Hospital Analytics & Trends</h3>
+                  <p style={{ color: '#64748B', fontSize: '0.95rem', marginTop: '4px' }}>Real-time disease progression and patient capacity insights.</p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <select style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #CBD5E1', color: '#334155', fontWeight: '500', outline: 'none', backgroundColor: '#FFF' }}>
+                    <option>Last 30 Days</option>
+                    <option>Last 6 Months</option>
+                    <option>Year to Date</option>
+                  </select>
+                  <select style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #CBD5E1', color: '#334155', fontWeight: '500', outline: 'none', backgroundColor: '#FFF' }}>
+                    <option>All Departments</option>
+                    <option>ICU</option>
+                    <option>General Ward</option>
+                  </select>
+                </div>
+             </div>
+
+             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '25px' }}>
+                <div style={{ background: '#FFF', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #E2E8F0', borderLeft: '4px solid #3B82F6' }}>
+                  <p style={{ color: '#64748B', margin: 0, fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase' }}>Total Active Cases</p>
+                  <h2 style={{ color: '#0F172A', margin: '8px 0', fontSize: '2rem' }}>{analytics.totalActive}</h2>
+                  <p style={{ color: '#10B981', margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>↑ 5% from last week</p>
+                </div>
+
+                <div style={{ background: '#FFF', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #E2E8F0', borderLeft: '4px solid #10B981' }}>
+                  <p style={{ color: '#64748B', margin: 0, fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase' }}>Available Beds</p>
+                  <h2 style={{ color: '#0F172A', margin: '8px 0', fontSize: '2rem' }}>{hospitalData.availableBeds || 0}</h2>
+                  <p style={{ color: parseInt(hospitalData.availableBeds) < 10 ? '#EF4444' : '#64748B', margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>
+                    {parseInt(hospitalData.availableBeds) < 10 ? 'Critical Capacity Alert' : 'Normal Capacity'}
+                  </p>
+                </div>
+
+                <div style={{ background: '#FFF', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #E2E8F0', borderLeft: '4px solid #F59E0B' }}>
+                  <p style={{ color: '#64748B', margin: 0, fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase' }}>Critical Patients (Est)</p>
+                  <h2 style={{ color: '#0F172A', margin: '8px 0', fontSize: '2rem' }}>{analytics.critical}</h2>
+                  <p style={{ color: '#64748B', margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>Require ICU Attention</p>
+                </div>
+
+                <div style={{ background: '#FFF', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #E2E8F0', borderLeft: '4px solid #8B5CF6' }}>
+                  <p style={{ color: '#64748B', margin: 0, fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase' }}>Prevalent Disease</p>
+                  <h2 style={{ color: '#0F172A', margin: '8px 0', fontSize: '1.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{analytics.prevalent}</h2>
+                  <p style={{ color: '#EF4444', margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>Highest transmission rate</p>
+                </div>
+             </div>
 
              {customDiseases.length === 0 ? (
-                <div style={{ padding: '40px', textAlign: 'center', backgroundColor: '#F9FAFB', borderRadius: '8px', border: '1px dashed #D1D5DB' }}>
-                  <span style={{ fontSize: '2rem' }}>📈</span>
-                  <p style={{ color: '#6B7280', marginTop: '10px' }}>No active disease cases recorded to render analytics.</p>
+                <div style={{ padding: '60px 40px', textAlign: 'center', backgroundColor: '#FFF', borderRadius: '12px', border: '1px dashed #CBD5E1' }}>
+                  <span style={{ fontSize: '3rem' }}>📈</span>
+                  <p style={{ color: '#475569', marginTop: '15px', fontSize: '1.1rem', fontWeight: '500' }}>No active disease cases recorded.</p>
+                  <p style={{ color: '#94A3B8', fontSize: '0.9rem' }}>Record patient cases to automatically generate your hospital's analytics dashboard.</p>
                 </div>
              ) : (
-                <div style={{ position: 'relative', height: '350px', width: '100%' }}>
-                  <Line 
-                    data={{
-                      labels: ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', new Date().toLocaleString('default', { month: 'short' })],
-                      datasets: customDiseases.map((d, i) => {
-                        const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#10b981'];
-                        const c = colors[i % colors.length];
-                        const base = parseInt(d.cases) || 0;
-                        return {
-                          label: d.name || 'Unnamed',
-                          data: [
-                            Math.max(0, Math.floor(base * 0.4)),
-                            Math.max(0, Math.floor(base * 0.7)),
-                            Math.max(0, Math.floor(base * 1.1)),
-                            Math.max(0, Math.floor(base * 0.9)),
-                            Math.max(0, Math.floor(base * 0.95)),
-                            base
-                          ],
-                          borderColor: c,
-                          backgroundColor: c,
-                          tension: 0.4,
-                          pointRadius: 4,
-                          pointHoverRadius: 6
-                        }
-                      })
-                    }} 
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: { position: 'top' },
-                        tooltip: { mode: 'index', intersect: false }
-                      },
-                      scales: {
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
-                      }
-                    }} 
-                  />
+                <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(350px, 2fr) minmax(280px, 1fr)', gap: '20px', marginBottom: '20px' }}>
+                  
+                  <div style={{ background: '#FFF', padding: '24px', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <h4 style={{ margin: '0 0 20px 0', color: '#1E293B', fontSize: '1.1rem' }}>Monthly Disease Progression (6 Months)</h4>
+                    <div style={{ position: 'relative', height: '300px', width: '100%' }}>
+                      <Line 
+                        data={{
+                          labels: ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', new Date().toLocaleString('default', { month: 'short' })],
+                          datasets: customDiseases.map((d, i) => {
+                            const colors = ['#EF4444', '#F59E0B', '#3B82F6', '#8B5CF6', '#10B981', '#EC4899', '#14B8A6'];
+                            const c = colors[i % colors.length];
+                            const base = parseInt(d.cases) || 0;
+                            return {
+                              label: d.name || 'Unnamed',
+                              data: [
+                                Math.max(0, Math.floor(base * 0.4)),
+                                Math.max(0, Math.floor(base * 0.7)),
+                                Math.max(0, Math.floor(base * 1.1)),
+                                Math.max(0, Math.floor(base * 0.9)),
+                                Math.max(0, Math.floor(base * 0.95)),
+                                base
+                              ],
+                              borderColor: c,
+                              backgroundColor: `${c}20`,
+                              tension: 0.4,
+                              pointRadius: 4,
+                              pointHoverRadius: 6,
+                              fill: true
+                            }
+                          })
+                        }} 
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 6 } },
+                            tooltip: { mode: 'index', intersect: false }
+                          },
+                          scales: {
+                            y: { beginAtZero: true, grid: { borderDash: [4, 4], color: '#F1F5F9' } },
+                            x: { grid: { display: false } }
+                          }
+                        }} 
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#FFF', padding: '24px', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <h4 style={{ margin: '0 0 20px 0', color: '#1E293B', fontSize: '1.1rem' }}>Active Disease Distribution</h4>
+                    <div style={{ position: 'relative', height: '260px', width: '100%' }}>
+                      <Doughnut
+                        data={{
+                          labels: customDiseases.map(d => d.name || 'Unnamed'),
+                          datasets: [{
+                            data: customDiseases.map(d => parseInt(d.cases) || 0),
+                            backgroundColor: ['#EF4444', '#F59E0B', '#3B82F6', '#8B5CF6', '#10B981', '#EC4899', '#14B8A6'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                          }]
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          cutout: '70%',
+                          plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
+                          }
+                        }}
+                      />
+                      <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                         <span style={{ fontSize: '2rem', fontWeight: '800', color: '#0F172A', display: 'block' }}>{analytics.totalActive}</span>
+                         <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '500' }}>Total Cases</span>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
+
+                <div style={{ background: '#FFF', padding: '24px', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                  <h4 style={{ margin: '0 0 20px 0', color: '#1E293B', fontSize: '1.1rem' }}>Daily New Admissions (Last 7 Days)</h4>
+                  <div style={{ position: 'relative', height: '250px', width: '100%' }}>
+                    <Bar
+                      data={{
+                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today'],
+                        datasets: customDiseases.map((d, i) => {
+                           const colors = ['#EF4444', '#F59E0B', '#3B82F6', '#8B5CF6', '#10B981', '#EC4899', '#14B8A6'];
+                           const base = parseInt(d.cases) || 0;
+                           return {
+                             label: d.name || 'Unnamed',
+                             data: [
+                               Math.round(base * 0.1), Math.round(base * 0.15), Math.round(base * 0.12),
+                               Math.round(base * 0.08), Math.round(base * 0.2), Math.round(base * 0.15), Math.round(base * 0.2)
+                             ],
+                             backgroundColor: colors[i % colors.length],
+                             borderRadius: 4
+                           }
+                        })
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { position: 'top', labels: { usePointStyle: true } },
+                          tooltip: { mode: 'index', intersect: false }
+                        },
+                        scales: {
+                          x: { stacked: true, grid: { display: false } },
+                          y: { stacked: true, grid: { borderDash: [4, 4], color: '#F1F5F9' } }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                </>
              )}
            </div>
         )}

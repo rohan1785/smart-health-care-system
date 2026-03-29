@@ -51,34 +51,43 @@ function Authority() {
   const handleDismissRec = (key) => setDismissedRecs(prev => [...prev, key]);
   
   const [name, setName] = useState('')
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  
+  const [debouncedName, setDebouncedName] = useState('')
+  const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedName(name);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [name]);
+
   const GOVT_HOSPITALS = [
-    "AIIMS Hospital, New Delhi", "AIIMS Hospital, Bhopal", "AIIMS Hospital, Bhubaneswar", "AIIMS Hospital, Jodhpur", "AIIMS Hospital, Patna", "AIIMS Hospital, Raipur", "AIIMS Hospital, Rishikesh", "AIIMS Hospital, Nagpur", "AIIMS Hospital, Kalyani", "AIIMS Hospital, Gorakhpur", "AIIMS Hospital, Bathinda", "AIIMS Hospital, Guwahati",
-    "Safdarjung Government Hospital, New Delhi", "RML Government Hospital, New Delhi", "Lok Nayak Government Hospital, New Delhi",
-    "Sir J. J. Government Hospital, Mumbai", "KEM Municipal Hospital, Mumbai", "Sion Municipal Hospital (LTMGH), Mumbai", "Nair Municipal Hospital, Mumbai", "Cama and Albless Govt Hospital, Mumbai", "St. George Govt Hospital, Mumbai",
-    "Sassoon General Govt Hospital, Pune", "Yashwantrao Chavan Memorial Hospital (YCMH), Pune", "Aundh District Civil Hospital, Pune", "Kamla Nehru Municipal Hospital, Pune",
-    "GMCH Govt Hospital, Nagpur", "IGGMC Govt Hospital, Nagpur",
-    "GMCH Govt Hospital, Latur", "Ghati Govt Hospital (GMCH), Chhatrapati Sambhajinagar",
-    "Govt Hospital (GMCH), Nanded", "Shri Bhausaheb Hire Govt Hospital, Dhule", "RCSM Govt Hospital, Kolhapur",
-    "Rajiv Gandhi Govt General Hospital, Chennai", "Stanley Govt Hospital, Chennai", "Kilpauk Govt Hospital, Chennai",
-    "Victoria Govt Hospital, Bangalore", "Bowring and Lady Curzon Govt Hospital, Bangalore",
-    "Osmania General Govt Hospital, Hyderabad", "Gandhi Govt Hospital, Hyderabad", "NIMS Govt Hospital, Hyderabad",
-    "KGMU Govt Hospital, Lucknow", "Sanjay Gandhi PGI Govt Hospital, Lucknow",
-    "SMS Govt Hospital, Jaipur", "MDM Govt Hospital, Jodhpur",
-    "PGIMER Govt Hospital, Chandigarh",
-    "SSKM Govt Hospital, Kolkata", "Calcutta Medical Govt Hospital, Kolkata",
-    "PMCH Govt Hospital, Patna", "NMCH Govt Hospital, Patna",
-    "RIMS Govt Hospital, Ranchi",
-    "SCB Govt Hospital, Cuttack",
-    "Civil Hospital, Ahmedabad",
-    "Govt Hospital, Thiruvananthapuram", "Govt Hospital, Kozhikode",
-    "Goa Govt Hospital (GMC), Bambolim",
-    "Govt Hospital (IGMC), Shimla",
-    "Govt Hospital, Jammu", "Govt Hospital (SKIMS), Srinagar",
-    "District Civil Hospital", "Sub-District Govt Hospital (SDH)", "Primary Health Centre (PHC)", "Rural Govt Hospital (RH)"
+    { name: "AIIMS Hospital, New Delhi", location: "New Delhi", type: "AIIMS" },
+    { name: "AIIMS Hospital, Nagpur", location: "Nagpur, MH", type: "AIIMS" },
+    { name: "Safdarjung Government Hospital", location: "New Delhi", type: "General Hospital" },
+    { name: "Sir J. J. Government Hospital", location: "Mumbai, MH", type: "Govt Medical College" },
+    { name: "KEM Municipal Hospital", location: "Mumbai, MH", type: "Municipal Hospital" },
+    { name: "Sassoon General Govt Hospital", location: "Pune, MH", type: "Govt Medical College" },
+    { name: "Yashwantrao Chavan Memorial Hospital", location: "Pune, MH", type: "Municipal Hospital" },
+    { name: "Aundh District Civil Hospital", location: "Pune, MH", type: "Civil Hospital" },
+    { name: "GMCH Govt Hospital, Nagpur", location: "Nagpur, MH", type: "Govt Medical College" },
+    { name: "GMCH Govt Hospital, Latur", location: "Latur, MH", type: "Govt Medical College" },
+    { name: "Ghati Govt Hospital (GMCH)", location: "C. Sambhajinagar, MH", type: "Govt Medical College" },
+    { name: "Govt Hospital (GMCH), Nanded", location: "Nanded, MH", type: "Govt Medical College" },
+    { name: "Rajiv Gandhi Govt General Hospital", location: "Chennai, TN", type: "General Hospital" },
+    { name: "Victoria Govt Hospital", location: "Bangalore, KA", type: "General Hospital" },
+    { name: "Osmania General Govt Hospital", location: "Hyderabad, TS", type: "General Hospital" },
+    { name: "KGMU Govt Hospital", location: "Lucknow, UP", type: "Govt Medical College" },
+    { name: "SSKM Govt Hospital", location: "Kolkata, WB", type: "Govt Medical College" },
+    { name: "Civil Hospital, Ahmedabad", location: "Ahmedabad, GJ", type: "Civil Hospital" },
+    { name: "District Civil Hospital", location: "General", type: "Civil Hospital" },
+    { name: "Sub-District Govt Hospital (SDH)", location: "General", type: "Sub-District Hospital" },
+    { name: "Primary Health Centre (PHC)", location: "Rural", type: "Primary Health Centre" }
   ];
-  const filteredHospitals = name ? GOVT_HOSPITALS.filter(h => h.toLowerCase().includes(name.toLowerCase())) : [];
+
+  const filteredHospitals = debouncedName && isAutocompleteOpen 
+    ? GOVT_HOSPITALS.filter(h => h.name.toLowerCase().includes(debouncedName.toLowerCase())).slice(0, 10) 
+    : [];
   const [beds, setBeds] = useState('')
   const [available, setAvailable] = useState('')
   const [locationStr, setLocationStr] = useState('')
@@ -747,60 +756,120 @@ function Authority() {
 <div className="chart-container">
   <h3 className="chart-title">Add Hospital</h3>
 
-  <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginTop: '20px' }}>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '20px' }}>
 
-    <div className="form-group" style={{ flex: '2', minWidth: '300px', marginBottom: 0 }}>
+    {/* Full-width Search Box */}
+    <div className="form-group" style={{ width: '100%', marginBottom: 0, position: 'relative' }}>
       <input
         type="text"
         placeholder="Search Government Hospital..."
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => {
+          setName(e.target.value);
+          setIsAutocompleteOpen(true);
+        }}
+        onFocus={() => setIsAutocompleteOpen(true)}
+        onBlur={() => setTimeout(() => setIsAutocompleteOpen(false), 200)}
         className="form-input"
-        list="govt-hospitals-list"
         autoComplete="new-password"
-        name="new-hospital-search"
-        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+        name="hospital-query"
+        style={{ width: '100%', padding: '16px 20px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '1.1rem', boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.03)' }}
       />
-      <datalist id="govt-hospitals-list">
-        {GOVT_HOSPITALS.map((h, i) => (
-          <option key={i} value={h} />
-        ))}
-      </datalist>
+      {filteredHospitals.length > 0 && (
+         <div style={{
+            position: 'absolute', top: '105%', left: 0, width: '100%', backgroundColor: 'white',
+            border: '1px solid #cbd5e1', borderRadius: '10px', zIndex: 9999,
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25), 0 10px 15px -3px rgba(0,0,0,0.1)', padding: '8px 0', marginTop: '6px'
+         }}>
+           {filteredHospitals.map((h, i) => {
+             const matchIndex = h.name.toLowerCase().indexOf(debouncedName.toLowerCase());
+             const beforeMatch = matchIndex > -1 ? h.name.slice(0, matchIndex) : h.name;
+             const matchText = matchIndex > -1 ? h.name.slice(matchIndex, matchIndex + debouncedName.length) : '';
+             const afterMatch = matchIndex > -1 ? h.name.slice(matchIndex + debouncedName.length) : '';
+
+             return (
+               <div key={i} 
+                   onMouseDown={() => { 
+                     setName(h.name); 
+                     setLocationStr(h.location !== 'General' && h.location !== 'Rural' ? h.location : locationStr);
+                     setIsAutocompleteOpen(false); 
+                   }}
+                   style={{ padding: '16px 24px', cursor: 'pointer', borderBottom: i !== filteredHospitals.length - 1 ? '1px solid #f8fafc' : 'none' }}
+                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+               >
+                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                   {/* Hospital Icon SVG */}
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '2px' }}>
+                     <path d="M3 21h18"></path>
+                     <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path>
+                     <path d="M12 7v6"></path>
+                     <path d="M9 10h6"></path>
+                   </svg>
+                   
+                   <div style={{ flex: 1, overflow: 'hidden' }}>
+                     <div style={{ color: '#0f172a', fontWeight: '500', fontSize: '1.1rem', whiteSpace: 'normal', lineHeight: '1.4' }}>
+                       {beforeMatch}<span style={{ color: '#2563eb', fontWeight: '800' }}>{matchText}</span>{afterMatch}
+                     </div>
+                     <div style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                         {/* Location Pin SVG */}
+                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                         {h.location}
+                       </div>
+                       <span style={{ color: '#cbd5e1' }}>|</span>
+                       <span style={{ background: '#f1f5f9', padding: '4px 12px', borderRadius: '12px', color: '#475569', fontWeight: '600', border: '1px solid #e2e8f0' }}>{h.type}</span>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             )
+           })}
+         </div>
+      )}
     </div>
 
-    <div className="form-group" style={{ flex: '1', minWidth: '150px', marginBottom: 0 }}>
-      <input
-        type="number"
-        placeholder="Total Beds"
-        value={beds}
-        onChange={(e) => setBeds(e.target.value)}
-        className="form-input"
-      />
-    </div>
+    {/* Bottom Row: Additional Details */}
+    <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+      <div className="form-group" style={{ flex: '1', minWidth: '150px', marginBottom: 0 }}>
+        <input
+          type="number"
+          placeholder="Total Beds"
+          value={beds}
+          onChange={(e) => setBeds(e.target.value)}
+          className="form-input"
+          style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+        />
+      </div>
 
-    <div className="form-group" style={{ flex: '1', minWidth: '150px', marginBottom: 0 }}>
-      <input
-        type="number"
-        placeholder="Available Beds"
-        value={available}
-        onChange={(e) => setAvailable(e.target.value)}
-        className="form-input"
-      />
-    </div>
+      <div className="form-group" style={{ flex: '1', minWidth: '150px', marginBottom: 0 }}>
+        <input
+          type="number"
+          placeholder="Available Beds"
+          value={available}
+          onChange={(e) => setAvailable(e.target.value)}
+          className="form-input"
+          style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+        />
+      </div>
 
-    <div className="form-group" style={{ flex: '1', minWidth: '150px', marginBottom: 0 }}>
-      <input
-        type="text"
-        placeholder="City/District (e.g. Latur)"
-        value={locationStr}
-        onChange={(e) => setLocationStr(e.target.value)}
-        className="form-input"
-      />
-    </div>
+      <div className="form-group" style={{ flex: '1', minWidth: '150px', marginBottom: 0 }}>
+        <input
+          type="text"
+          placeholder="City/District (e.g. Latur)"
+          value={locationStr}
+          onChange={(e) => setLocationStr(e.target.value)}
+          className="form-input"
+          style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+        />
+      </div>
 
-    <button onClick={addHospital} className="btn btn-primary">
-      Add Hospital
-    </button>
+      <div style={{ flex: '1', minWidth: '150px', display: 'flex' }}>
+        <button onClick={addHospital} className="btn btn-primary" style={{ width: '100%', padding: '12px', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold' }}>
+          Add Hospital
+        </button>
+      </div>
+    </div>
 
   </div>
 </div>
