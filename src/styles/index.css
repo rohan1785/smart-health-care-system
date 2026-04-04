@@ -1159,8 +1159,7 @@ body {
 @media print {
   .navbar,
   .sidebar,
-  .btn,
-  button {
+  .btn {
     display: none !important;
   }
   
@@ -1174,12 +1173,6 @@ body {
   .hospital-card,
   .chart-container {
     break-inside: avoid;
-    page-break-inside: avoid;
-  }
-  
-  #hospital-dashboard {
-    box-shadow: none !important;
-    border: none !important;
   }
 }
 
