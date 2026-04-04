@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { jsPDF } from 'jspdf'
 import { db } from '../firebase'
 import { doc, getDoc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { Line, Doughnut, Bar } from 'react-chartjs-2'
@@ -264,6 +265,78 @@ function Hospital() {
     return { totalActive, critical, prevalent: prevalent.name };
   }
   const analytics = calculateAnalytics();
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF()
+    const date = new Date().toLocaleDateString()
+    doc.setFontSize(18)
+    doc.setTextColor(0, 61, 130)
+    doc.text('Hospital Report', 14, 20)
+    doc.setFontSize(11)
+    doc.setTextColor(80, 80, 80)
+    doc.text(`Hospital: ${hospitalData.name}`, 14, 32)
+    doc.text(`Date: ${date}`, 14, 40)
+    doc.text(`Total Beds: ${hospitalData.totalBeds || 0}`, 14, 50)
+    doc.text(`Available Beds: ${hospitalData.availableBeds || 0}`, 14, 58)
+    doc.text(`Ventilators: ${hospitalData.currentEquipment?.ventilators || 0}`, 14, 66)
+    doc.text(`Contact: ${hospitalData.phone || 'N/A'}`, 14, 74)
+    doc.text(`Total Active Cases: ${analytics.totalActive}`, 14, 82)
+    doc.text(`Critical Patients (Est): ${analytics.critical}`, 14, 90)
+    doc.text(`Prevalent Disease: ${analytics.prevalent}`, 14, 98)
+    if (customDiseases.length > 0) {
+      doc.setFontSize(13)
+      doc.setTextColor(0, 61, 130)
+      doc.text('Active Disease Cases', 14, 112)
+      doc.setFontSize(11)
+      doc.setTextColor(80, 80, 80)
+      customDiseases.forEach((d, i) => {
+        doc.text(`${d.name || 'Unnamed'}: ${d.cases} cases`, 14, 122 + i * 8)
+      })
+    }
+    if (sections.length > 0) {
+      const offset = 122 + customDiseases.length * 8 + 10
+      doc.setFontSize(13)
+      doc.setTextColor(0, 61, 130)
+      doc.text('Departments & Sections', 14, offset)
+      doc.setFontSize(11)
+      doc.setTextColor(80, 80, 80)
+      sections.forEach((s, i) => {
+        doc.text(`- ${s.name}`, 14, offset + 10 + i * 8)
+      })
+    }
+    doc.save(`${hospitalData.name}_Report_${date}.pdf`)
+  }
+
+  const handleExportCSV = () => {
+    const rows = [
+      ['Hospital Report'],
+      ['Hospital', hospitalData.name],
+      ['Date', new Date().toLocaleDateString()],
+      ['Total Beds', hospitalData.totalBeds || 0],
+      ['Available Beds', hospitalData.availableBeds || 0],
+      ['Ventilators', hospitalData.currentEquipment?.ventilators || 0],
+      ['Contact', hospitalData.phone || 'N/A'],
+      ['Total Active Cases', analytics.totalActive],
+      ['Critical Patients (Est)', analytics.critical],
+      ['Prevalent Disease', analytics.prevalent],
+      [],
+      ['Disease Name', 'Cases'],
+      ...customDiseases.map(d => [d.name || 'Unnamed', d.cases]),
+      [],
+      ['Departments & Sections'],
+      ...sections.map(s => [s.name])
+    ]
+    const csv = rows.map(r => r.join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${hospitalData.name}_Report.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handlePrint = () => window.print()
 
   return (
     <div style={{ 
@@ -669,7 +742,7 @@ function Hospital() {
                   <h3 style={{ color: '#0F172A', fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>📊 Hospital Analytics & Trends</h3>
                   <p style={{ color: '#64748B', fontSize: '0.95rem', marginTop: '4px' }}>Real-time disease progression and patient capacity insights.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <select style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #CBD5E1', color: '#334155', fontWeight: '500', outline: 'none', backgroundColor: '#FFF' }}>
                     <option>Last 30 Days</option>
                     <option>Last 6 Months</option>
@@ -680,6 +753,9 @@ function Hospital() {
                     <option>ICU</option>
                     <option>General Ward</option>
                   </select>
+                  <button onClick={handleDownloadPDF} style={{ padding: '8px 14px', backgroundColor: '#DC2626', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}>📄 Download PDF</button>
+                  <button onClick={handleExportCSV} style={{ padding: '8px 14px', backgroundColor: '#047857', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}>📊 Export CSV</button>
+                  <button onClick={handlePrint} style={{ padding: '8px 14px', backgroundColor: '#003D82', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}>🖨️ Print Dashboard</button>
                 </div>
              </div>
 
