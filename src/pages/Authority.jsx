@@ -1107,32 +1107,10 @@ function Authority() {
   </div>
 
 </div>
-
 </div>
 </>
-)
+  );
 }
 
-<style jsx>{`
-  @media print {
-    .no-print {
-      display: none !important;
-    }
-    .print-only {
-      display: block !important;
-    }
-    body {
-      font-size: 12px;
-    }
-    .dashboard-card {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-    .chart-container {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-  }
-`}</style>
-
 export default Authority
+

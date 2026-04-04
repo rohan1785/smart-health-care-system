@@ -15,6 +15,8 @@ import {
   Title,
   Filler
 } from 'chart.js'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 
 ChartJS.register(
   LineElement,
@@ -265,6 +267,44 @@ function Hospital() {
   }
   const analytics = calculateAnalytics();
 
+  const handleDownloadPDF = async () => {
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const element = document.getElementById('hospital-dashboard');
+    const canvas = await html2canvas(element, { scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = 190;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+    pdf.save(`${hospitalData.name}_Report.pdf`);
+  };
+
+  const handleExportCSV = () => {
+    const csvData = [
+      ['Hospital Name', hospitalData.name],
+      ['Total Beds', editTotalBeds],
+      ['Available Beds', editAvailableBeds],
+      ['Ventilators', editVentilators],
+      ['Contact', editContact],
+      [''],
+      ['Disease Name', 'Cases'],
+      ...customDiseases.map(d => [d.name, d.cases]),
+      [''],
+      ['Sections'],
+      ...sections.map(s => [s.name])
+    ];
+    const csv = csvData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${hospitalData.name}_Data.csv`;
+    a.click();
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div style={{ 
       minHeight: '100vh',
@@ -294,7 +334,7 @@ function Hospital() {
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
       
-      <div style={{ 
+      <div id="hospital-dashboard" style={{ 
         backgroundColor: '#FFFFFF',
         border: '1px solid #D1D5DB',
         borderRadius: '4px',
@@ -308,20 +348,25 @@ function Hospital() {
           
           <div style={{ display: 'flex', gap: '12px' }}>
             {!isEditing ? (
-              <button 
-                onClick={() => setIsEditing(true)} 
-                style={{ 
-                  padding: '10px 20px',
-                  backgroundColor: '#003D82',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem'
-                }}>
-                Edit Details
-              </button>
+              <>
+                <button onClick={handleDownloadPDF} style={{ padding: '10px 20px', backgroundColor: '#DC2626', color: 'white', border: 'none', borderRadius: '4px', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}>📄 Download PDF</button>
+                <button onClick={handleExportCSV} style={{ padding: '10px 20px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '4px', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}>📊 Export CSV</button>
+                <button onClick={handlePrint} style={{ padding: '10px 20px', backgroundColor: '#7C3AED', color: 'white', border: 'none', borderRadius: '4px', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}>🖨️ Print</button>
+                <button 
+                  onClick={() => setIsEditing(true)} 
+                  style={{ 
+                    padding: '10px 20px',
+                    backgroundColor: '#003D82',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}>
+                  Edit Details
+                </button>
+              </>
             ) : (
               <>
                 <button 
